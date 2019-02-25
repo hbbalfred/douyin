@@ -8,6 +8,9 @@ const wait = require("./wait");
 // wait a moment
 // next video
 
+const GLOBAL_MAX_ERROR_TIMES = 5;
+let globalErrorTimes = 0;
+
 main();
 
 async function main() {
@@ -22,14 +25,14 @@ async function loop() {
 
 		await download(url);
 
-		const seconds = 5 + Math.random() * 10;
+		const seconds = 2 + Math.random() * 5;
 		await wait(seconds);
 
 		await next();
 	} catch (error) {
-		if (error.message === "Not found the url") {
-			await next();
-		} else {
+		await next();
+
+		if (++globalErrorTimes > GLOBAL_MAX_ERROR_TIMES) {
 			throw error;
 		}
 	}

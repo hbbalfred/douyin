@@ -2,6 +2,8 @@
 video
 obsolete
 foo
+tmp
+output.mp4
 
 # Logs
 logs
