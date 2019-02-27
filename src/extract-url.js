@@ -1,6 +1,6 @@
 const cmd = require("child_process").exec;
 
-const KEY_WORD = "snssdk.com";
+const WAIT_LOG_TIMEOUT = 2; // seconds
 
 module.exports = main;
 
@@ -12,39 +12,49 @@ async function main() {
 
 	console.log("Log:", log);
 	
-	const url = parseUrl(log);
+	let url = parseUrl(log);
+
+	const timer = Date.now();
+
+	while (!url && (Date.now() - timer) < WAIT_LOG_TIMEOUT * 1000) {
+		url = parseUrl(log);
+	}
+
+	if (!url) {
+		throw new Error("TIMEOUT: Not found the url");
+	}
 	
 	console.log("Video URL:", url);
 	return url;
 }
 
 function parseUrl(log) {
-	let url = log;
-
 	// decode manually avoid the exception "URI malformed"
-	// url = decodeURIComponent(url);
+	// log = decodeURIComponent(log);
 
-	url = url
+	log = log
 		.replace(/%26/gi, "&")
 		.replace(/%2f/gi, "/")
 		.replace(/%3a/gi, ":")
 		.replace(/%3d/gi, "=")
 		.replace(/%3f/gi, "?")
 		;
+	const urls = log.split("&");
 
-	url = url.split("&").find(i => i.indexOf(KEY_WORD) !== -1);
+	let url = urls.find(u => u.indexOf("ixigua.com") !== -1);
 	if (!url) {
-		throw new Error("Not found the url");
+		url = urls.find(u => u.indexOf("snssdk.com") !== -1);
 	}
 
-	url = url.substr(url.indexOf("=") + 1);
-
+	if (url) {
+		url = url.substr(url.indexOf("=") + 1);
+	}
 	return url;
 }
 
 function dumpLog() {
 	return new Promise((resolve, reject) => {
-		cmd(`adb logcat -e ${KEY_WORD} -v raw -d`, (error, stdout, stderr) => {
+		cmd(`adb logcat -e snssdk.com -v raw -d`, (error, stdout, stderr) => {
 			if (error) {
 				console.error(error);
 				reject("Error: Dump adb logcat");

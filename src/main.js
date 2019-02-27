@@ -25,10 +25,11 @@ async function loop() {
 
 		await download(url);
 
-		const seconds = 2 + Math.random() * 5;
+		const seconds = 3 + Math.random() * 10;
 		await wait(seconds);
 
 		await next();
+		globalErrorTimes = 0;
 	} catch (error) {
 		await next();
 
