@@ -5,7 +5,8 @@
   "description": "A scrapy of douyin in Node.js",
   "main": "index.js",
   "dependencies": {
-    "request": "^2.88.0"
+    "request": "^2.88.0",
+    "rimraf": "^2.6.3"
   },
   "devDependencies": {},
   "scripts": {

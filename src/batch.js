@@ -1,40 +1,55 @@
 const fs = require("fs");
 const path = require("path");
+const rimraf = require("rimraf");
 const ffmpeg = require("./ffmpeg");
 
 const PROJ_DIR = path.resolve(__dirname, "..");
 const DEFAULT_VIDEO_DIR = path.join(PROJ_DIR, "video");
-const DEFAULT_TMP_DIR = path.join(PROJ_DIR, "tmp");
-const DEFAULT_FILELIST = path.join(PROJ_DIR, "foo");
-const DEFAULT_OUTFILE = path.join(PROJ_DIR, "output.mp4");
+const DEFAULT_VIDEO_WIDTH = 720;
+const DEFAULT_VIDEO_HEIGHT = 1280;
+
+const CONFIG = getConfig();
+
+rimraf.sync(CONFIG.tmpDir);
+fs.mkdirSync(CONFIG.tmpDir);
 
 main();
 
+function getConfig() {
+  const videoDir = process.argv[2] || DEFAULT_VIDEO_DIR;
+  const videoWidth = parseInt(process.argv[3]) || DEFAULT_VIDEO_WIDTH;
+  const videoHeight = parseInt(process.argv[4]) || DEFAULT_VIDEO_HEIGHT;
+  const tmpDir = path.join(videoDir, "tmp");
+  const filelist = path.join(videoDir, "filelist");
+  const outputFile = path.join(videoDir, "output.mp4");
+
+  return { videoDir, videoWidth, videoHeight, tmpDir, filelist, outputFile, };
+}
+
 async function main() {
-	const videoDir = process.argv[2] || DEFAULT_VIDEO_DIR;
-	const videoList = fs.readdirSync(videoDir)
-		.filter(file => path.extname(file) === ".mp4")
-		.map(file => ({
-			src: path.join(videoDir, file),
-			tmp: path.join(DEFAULT_TMP_DIR, file),
-		}));
+  const videoList = fs.readdirSync(CONFIG.videoDir)
+    .filter(file => path.extname(file) === ".mp4")
+    .map(file => ({
+      src: path.join(CONFIG.videoDir, file),
+      tmp: path.join(CONFIG.tmpDir, file),
+    }));
 
-	for (const file of videoList) {
-		await nor(file);
-	}
+  for (const file of videoList) {
+    await nor(file);
+  }
 
-	const filelist = videoList.map(file => `file '${file.tmp}'`).join("\n");
+  const filelist = videoList.map(file => `file '${file.tmp}'`).join("\n");
 
-	fs.writeFileSync(DEFAULT_FILELIST, filelist, { encoding: "utf8" });
+  fs.writeFileSync(CONFIG.filelist, filelist, { encoding: "utf8" });
 
-	await ffmpeg.concat(DEFAULT_FILELIST, DEFAULT_OUTFILE);
+  await ffmpeg.concat(CONFIG.filelist, CONFIG.outputFile);
 }
 
 async function nor(file) {
-	const size = await ffmpeg.getSize(file.src);
-	if (size.width !== 720 || size.height !== 1280) {
-		await ffmpeg.pad(file.src, 720, 1280, file.tmp);
-		fs.copyFileSync(file.tmp, file.src);
-	}
-	await ffmpeg.convert(file.src, file.tmp);
+  const size = await ffmpeg.getSize(file.src);
+  if (size.width !== CONFIG.videoWidth || size.height !== CONFIG.videoHeight) {
+    await ffmpeg.pad(file.src, CONFIG.videoWidth, CONFIG.videoHeight, file.tmp);
+    fs.copyFileSync(file.tmp, file.src);
+  }
+  await ffmpeg.convert(file.src, file.tmp);
 }
