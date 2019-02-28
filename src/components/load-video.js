@@ -2,9 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const request = require("request");
 
-const PROJ_DIR = path.resolve(__dirname, "..");
-const VIDEO_DIR = path.join(PROJ_DIR, "video");
-
 // const testUrl = "https://aweme.snssdk.com/aweme/v1/play/?video_id=v0200f850000bhnm017k43anidingn00";
 const headers = {
 	"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -13,12 +10,12 @@ const headers = {
 
 module.exports = download;
 
-function download(url) {
+function download(url, dir) {
 	return new Promise((resolve, reject) => {
 		console.log("Download video...");
 		
 		const now = Date.now().toString();
-		const videoPath = path.join(VIDEO_DIR, now + ".mp4");
+		const videoPath = path.join(dir, now + ".mp4");
 
 		request.get(url, { headers }, (error, res, body) => {
 			if (error) {

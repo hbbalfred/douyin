@@ -1,10 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const rimraf = require("rimraf");
-const ffmpeg = require("./ffmpeg");
+const ffmpeg = require("./components/ffmpeg");
+const CONST = require("./utils/constants");
 
-const PROJ_DIR = path.resolve(__dirname, "..");
-const DEFAULT_VIDEO_DIR = path.join(PROJ_DIR, "video");
 const DEFAULT_VIDEO_WIDTH = 720;
 const DEFAULT_VIDEO_HEIGHT = 1280;
 
@@ -16,7 +15,7 @@ fs.mkdirSync(CONFIG.tmpDir);
 main();
 
 function getConfig() {
-  const videoDir = process.argv[2] ? path.resolve(PROJ_DIR, process.argv[2]) : DEFAULT_VIDEO_DIR;
+  const videoDir = process.argv[2] ? path.join(CONST.PWD, process.argv[2]) : path.join(CONST.PROJ_DIR, "video");
   const videoWidth = parseInt(process.argv[3]) || DEFAULT_VIDEO_WIDTH;
   const videoHeight = parseInt(process.argv[4]) || DEFAULT_VIDEO_HEIGHT;
   const tmpDir = path.join(videoDir, "tmp");

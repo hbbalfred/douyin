@@ -1,7 +1,9 @@
-const extract = require("./extract-url");
-const download = require("./loader");
-const next = require("./next-video");
-const wait = require("./wait");
+const path = require("path");
+const extract = require("./components/extract-url");
+const download = require("./components/load-video");
+const next = require("./components/next-video");
+const wait = require("./components/wait");
+const CONST = require("./utils/constants");
 
 // extract url
 // download video
@@ -11,7 +13,14 @@ const wait = require("./wait");
 const GLOBAL_MAX_ERROR_TIMES = 5;
 let globalErrorTimes = 0;
 
+const CONFIG = getConfig(process.argv);
+
 main();
+
+function getConfig() {
+	const storageDir = process.argv[2] ? path.join(CONST.PWD, process.argv[2]) : path.join(CONST.PROJ_DIR, "video");
+	return { storageDir };
+}
 
 async function main() {
 	while (true) {
@@ -23,7 +32,7 @@ async function loop() {
 	try {
 		const url = await extract();
 
-		await download(url);
+		await download(url, CONFIG.storageDir);
 
 		const seconds = 3 + Math.random() * 10;
 		await wait(seconds);

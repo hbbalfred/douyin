@@ -5,6 +5,7 @@ module.exports = {
   pad,
   convert,
   concat,
+  screenshot,
 };
 
 function getSize(file) {
@@ -51,7 +52,19 @@ function concat(filelist, out) {
       if (error) {
         return reject(error);
       }
-      console.log("Concated videos");
+      console.log("Concated videos:", out);
+      resolve(out);
+    });
+  });
+}
+
+function screenshot(file, time, out) {
+  return new Promise((resolve, reject) => {
+    cmd(`ffmpeg -v error -ss ${time} -i ${file} -y -f image2 -r 1 -vframes 1 ${out}`, (error, stdout, stderr) => {
+      if (error) {
+        return reject(error);
+      }
+      console.log("Captured screenshot:", out);
       resolve(out);
     });
   });
