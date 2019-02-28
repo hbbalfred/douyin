@@ -16,7 +16,7 @@ fs.mkdirSync(CONFIG.tmpDir);
 main();
 
 function getConfig() {
-  const videoDir = process.argv[2] || DEFAULT_VIDEO_DIR;
+  const videoDir = process.argv[2] ? path.resolve(PROJ_DIR, process.argv[2]) : DEFAULT_VIDEO_DIR;
   const videoWidth = parseInt(process.argv[3]) || DEFAULT_VIDEO_WIDTH;
   const videoHeight = parseInt(process.argv[4]) || DEFAULT_VIDEO_HEIGHT;
   const tmpDir = path.join(videoDir, "tmp");

@@ -27,7 +27,7 @@ function pad(file, tw, th, out) {
       if (error) {
         return reject(error);
       }
-      console.log("Pad video:", file);
+      console.log("Padded video:", file);
       resolve(out);
     });
   });
@@ -39,7 +39,7 @@ function convert(file, out) {
       if (error) {
         return reject(error);
       }
-      console.log("Convert video:", file);
+      console.log("Converted video:", file);
       resolve(out);
     });
   });
@@ -51,7 +51,7 @@ function concat(filelist, out) {
       if (error) {
         return reject(error);
       }
-      console.log("Concat videos");
+      console.log("Concated videos");
       resolve(out);
     });
   });
