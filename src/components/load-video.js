@@ -17,6 +17,10 @@ function download(url, dir) {
 		const now = Date.now().toString();
 		const videoPath = path.join(dir, now + ".mp4");
 
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir);
+		}
+
 		request.get(url, { headers }, (error, res, body) => {
 			if (error) {
 				reject();
