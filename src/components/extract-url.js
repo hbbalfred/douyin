@@ -7,57 +7,85 @@ module.exports = main;
 async function main() {
 	console.log("Extract url...");
 
-	const log = await dumpLog();
-	await clearLog();
-
-	console.log("Log:", log);
-	
-	let url = parseUrl(log);
+	let err, log;
 
 	const timer = Date.now();
-
-	while (!url && (Date.now() - timer) < WAIT_LOG_TIMEOUT * 1000) {
-		url = parseUrl(log);
+	while (!log && (Date.now() - timer) < WAIT_LOG_TIMEOUT * 1000) {
+		try { log = await dumpLog(); } catch (error) { err = error; }	
 	}
 
-	if (!url) {
-		throw new Error("TIMEOUT: Not found the url");
+	if (err) {
+		throw err;
 	}
+	if (!log) {
+		throw new Error("TIMEOUT: Not found any url");
+	}
+
+	await clearLog();
+
+	console.log("Log >>>>>", log);
 	
-	console.log("Video URL:", url);
-	return url;
+	const urls = parseUrls(log);
+	if (!urls) {
+		throw new Error("Invalid records");
+	}
+
+	return urls;
 }
 
-function parseUrl(log) {
-	// decode manually avoid the exception "URI malformed"
-	// log = decodeURIComponent(log);
+function parseUrls(log) {
+	if (!log) {
+		return;
+	}
 
-	log = log
-		.replace(/%26/gi, "&")
+	const urls = [];
+
+	for (const row of log.split("\n")) {
+		if (!row || !row.trim()) continue;
+
+		const re = /url0=([^&]+)/g;
+		const rs = re.exec(row);
+		if (!rs) { continue; };
+
+		const link = decode2(rs[1]);
+
+		const mark = link.indexOf("?");
+		const query = link.substr(mark + 1);
+		const video_id = query.split("&").find(query => query.indexOf("video_id=") === 0);
+		
+		if (!video_id) {
+			console.warn("Not found the video id:", link);
+			continue;
+		}
+
+		let url = link.substr(0, link.indexOf("?"));
+		url = `${url}?${video_id}&ratio=720p`;
+
+		urls.push(url);
+	}
+
+	if (urls.length > 0) {
+		return urls;
+	}
+}
+
+/**
+ * decode manually avoid the exception "URI malformed"
+ */
+function decode2(url) {
+	return url.replace(/%26/gi, "&")
 		.replace(/%2f/gi, "/")
 		.replace(/%3a/gi, ":")
 		.replace(/%3d/gi, "=")
 		.replace(/%3f/gi, "?")
 		;
-	const urls = log.split("&");
-
-	let url = urls.find(u => u.indexOf("ixigua.com") !== -1);
-	if (!url) {
-		url = urls.find(u => u.indexOf("snssdk.com") !== -1);
-	}
-
-	if (url) {
-		url = url.substr(url.indexOf("=") + 1);
-	}
-	return url;
 }
 
 function dumpLog() {
 	return new Promise((resolve, reject) => {
-		cmd(`adb logcat -e snssdk.com -v raw -d`, (error, stdout, stderr) => {
+		cmd(`adb logcat -v raw -d | grep 127.0.0.1`, (error, stdout, stderr) => {
 			if (error) {
-				console.error(error);
-				reject("Error: Dump adb logcat");
+				reject(error);
 			} else {
 				resolve(stdout);
 			}

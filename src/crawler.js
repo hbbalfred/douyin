@@ -12,6 +12,7 @@ const CONST = require("./utils/constants");
 
 const GLOBAL_MAX_ERROR_TIMES = 5;
 let globalErrorTimes = 0;
+let loadedVideos = {};
 
 const CONFIG = getConfig(process.argv);
 
@@ -30,9 +31,14 @@ async function main() {
 
 async function loop() {
 	try {
-		const url = await extract();
+		const urls = await extract();
 
-		await download(url, CONFIG.storageDir);
+		for (const url of urls) {
+			if (!loadedVideos[url]) {
+				loadedVideos[url] = 1;
+				await download(url, CONFIG.storageDir);
+			}
+		}
 
 		const seconds = 3 + Math.random() * 10;
 		await wait(seconds);
