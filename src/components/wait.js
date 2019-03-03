@@ -1,6 +1,13 @@
 module.exports = function wait(seconds) {
 	return new Promise((resolve, reject) => {
-		console.log(`Wait ${seconds} seconds`);
+		if (typeof seconds !== "number") {
+			seconds = 0;
+		}
+		if (!seconds) {
+			return resolve();
+		}
+		
+		// console.log(`Wait ${seconds.toFixed(2)} seconds`);
 		
 		setTimeout(() => resolve(), seconds * 1000);
 	});

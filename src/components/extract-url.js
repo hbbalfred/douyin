@@ -1,63 +1,94 @@
-const cmd = require("child_process").exec;
-
-const WAIT_LOG_TIMEOUT = 2; // seconds
+const fs = require("fs");
+const path = require("path");
 
 module.exports = main;
 
-async function main() {
-	console.log("Extract url...");
+const VALID_HOST_LIST = [
+	"aweme.snssdk.com",
+	"api-eagle.amemv.com",
+];
 
-	const log = await dumpLog();
-	await clearLog();
+const checkedFileMap = {};
 
-	console.log("Log:", log);
-	
-	let url = parseUrl(log);
+async function main(charlesDir) {
+	console.log("Extract urls...");
 
-	const timer = Date.now();
+	const filelist = fs.readdirSync(charlesDir)
+		.filter(f => path.extname(f) === ".chlsj")
+		.filter(f => !checkedFileMap[f]);
 
-	while (!url && (Date.now() - timer) < WAIT_LOG_TIMEOUT * 1000) {
-		url = parseUrl(log);
+	let urls = [];
+
+	while (filelist.length > 0) {
+		const charles = path.join(charlesDir, filelist.pop());
+		const videoList = await parseCharlesFile(charles);
+
+		for (const content of videoList) {
+			const list = parseUrlList(content);
+			urls = urls.concat(list);
+		}
 	}
 
-	if (!url) {
-		throw new Error("TIMEOUT: Not found the url");
-	}
-	
-	console.log("Video URL:", url);
-	return url;
+	return urls;
 }
 
-function parseUrl(log) {
-	// decode manually avoid the exception "URI malformed"
-	// log = decodeURIComponent(log);
+async function parseCharlesFile(file) {
+	let data = fs.readFileSync(file, { encoding: "utf8" });
+	data = JSON.parse(data);
 
-	log = log
-		.replace(/%26/gi, "&")
+	if (!Array.isArray(data)) {
+		throw new Error("Invalid input file:", file);
+	}
+
+	checkedFileMap[file] = true;
+
+	return data
+		.filter(item => VALID_HOST_LIST.includes(item.host))
+		.filter(item => item.response && item.response.body && item.response.body.encoding === "base64")
+		.map(item => item.response.body.encoded);
+}
+
+function parseUrlList(content) {
+	const b = Buffer.from(content, "base64");
+
+	const json = JSON.parse(b.toString());
+
+	return json.aweme_list
+		.map(item => parsePlayAddr(item.video))
+		.map(item => ({ id: item.uri, urls: item.url_list }))
+		;
+}
+
+function parsePlayAddr(video) {
+	for (const bit_rate of video.bit_rate) {
+		switch (bit_rate.gear_name) {
+			case "normal_1080": return bit_rate.play_addr;
+			case "normal_720": return bit_rate.play_addr;
+			case "normal_540": return bit_rate.play_addr;
+			case "normal_360": return bit_rate.play_addr;
+			default:
+		}
+	}
+	return video.play_addr;
+}
+
+/**
+ * decode manually avoid the exception "URI malformed"
+ */
+function decode2(url) {
+	return url.replace(/%26/gi, "&")
 		.replace(/%2f/gi, "/")
 		.replace(/%3a/gi, ":")
 		.replace(/%3d/gi, "=")
 		.replace(/%3f/gi, "?")
 		;
-	const urls = log.split("&");
-
-	let url = urls.find(u => u.indexOf("ixigua.com") !== -1);
-	if (!url) {
-		url = urls.find(u => u.indexOf("snssdk.com") !== -1);
-	}
-
-	if (url) {
-		url = url.substr(url.indexOf("=") + 1);
-	}
-	return url;
 }
 
 function dumpLog() {
 	return new Promise((resolve, reject) => {
-		cmd(`adb logcat -e snssdk.com -v raw -d`, (error, stdout, stderr) => {
+		cmd(`adb logcat -v raw -d | grep 127.0.0.1`, (error, stdout, stderr) => {
 			if (error) {
-				console.error(error);
-				reject("Error: Dump adb logcat");
+				reject(error);
 			} else {
 				resolve(stdout);
 			}

@@ -21,16 +21,13 @@ function download(url, dir) {
 			fs.mkdirSync(dir);
 		}
 
-		request.get(url, { headers }, (error, res, body) => {
-			if (error) {
-				reject();
-				throw new Error("Fail to download the video: " + url);
-			}
-		})
+		request.get(url, { headers })
+			.on("error", error => console.error(error))
 			.pipe(fs.createWriteStream(videoPath))
+			.on("error", error => console.error(error))
 			.on("finish", () => {
 				console.log("Finish downloading");
-				resolve();
+				resolve(videoPath);
 			});
 	});
 }

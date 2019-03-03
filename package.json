@@ -7,7 +7,8 @@
   "dependencies": {
     "gm": "^1.23.1",
     "request": "^2.88.0",
-    "rimraf": "^2.6.3"
+    "rimraf": "^2.6.3",
+    "yargs": "^13.2.1"
   },
   "devDependencies": {},
   "scripts": {
