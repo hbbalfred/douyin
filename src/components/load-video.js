@@ -12,7 +12,7 @@ module.exports = download;
 
 function download(url, dir) {
 	return new Promise((resolve, reject) => {
-		console.log("Download video...");
+		console.log("Start to download:", url);
 		
 		const now = Date.now().toString();
 		const videoPath = path.join(dir, now + ".mp4");
@@ -26,7 +26,7 @@ function download(url, dir) {
 			.pipe(fs.createWriteStream(videoPath))
 			.on("error", error => console.error(error))
 			.on("finish", () => {
-				console.log("Finish downloading");
+				console.log("Download complete:", videoPath);
 				resolve(videoPath);
 			});
 	});
