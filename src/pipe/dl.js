@@ -11,7 +11,7 @@ const argv = require("yargs")
 	.option("minVideoSize", {
 		alias: "s",
 		desc: "A threshold of minimum size of video (KB)",
-		default: 100,
+		default: 150,
 	})
 	.help()
 	.argv;

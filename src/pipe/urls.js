@@ -9,7 +9,7 @@ function start(list) {
 		const json = JSON.parse(item);
 
 		for (const aweme of json.aweme_list) {
-			const addr = aweme.video.play_addr;
+			const addr = aweme.aweme_info.video.play_addr;
 			urlMap[addr.uri] = addr.url_list;
 		}
 	}
