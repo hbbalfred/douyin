@@ -9,8 +9,8 @@ const DEFAULT_VIDEO_HEIGHT = 1280;
 
 const CONFIG = getConfig();
 
-rimraf.sync(CONFIG.tmpDir);
-fs.mkdirSync(CONFIG.tmpDir);
+// rimraf.sync(CONFIG.tmpDir);
+// fs.mkdirSync(CONFIG.tmpDir);
 
 main();
 
@@ -30,7 +30,8 @@ async function main() {
     .filter(file => path.extname(file) === ".mp4")
     .map(file => ({
       src: path.join(CONFIG.videoDir, file),
-      tmp: path.join(CONFIG.tmpDir, file),
+      tmp: path.join(CONFIG.tmpDir, file.replace(/'/g, "_")),
+      old: path.join(CONFIG.tmpDir, file),
     }));
 
   for (const file of videoList) {
@@ -45,10 +46,15 @@ async function main() {
 }
 
 async function nor(file) {
-  const size = await ffmpeg.getSize(file.src);
-  if (size.width !== CONFIG.videoWidth || size.height !== CONFIG.videoHeight) {
-    await ffmpeg.pad(file.src, CONFIG.videoWidth, CONFIG.videoHeight, file.tmp);
-    fs.copyFileSync(file.tmp, file.src);
+  // const size = await ffmpeg.getSize(file.src);
+  // if (size.width !== CONFIG.videoWidth || size.height !== CONFIG.videoHeight) {
+  //   await ffmpeg.pad(file.src, CONFIG.videoWidth, CONFIG.videoHeight, file.tmp);
+  //   fs.copyFileSync(file.tmp, file.src);
+  // }
+  // await ffmpeg.convert(file.src, file.tmp);
+  if (file.old !== file.tmp) {
+    if (fs.existsSync(file.old)) {
+      fs.renameSync(file.old, file.tmp);
+    }
   }
-  await ffmpeg.convert(file.src, file.tmp);
 }

@@ -10,7 +10,7 @@ module.exports = {
 
 function getSize(file) {
 	return new Promise((resolve, reject) => {
-		cmd(`ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 ${file}`, (error, stdout, stderr) => {
+		cmd(`ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "${file}"`, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
@@ -24,7 +24,7 @@ function getSize(file) {
 
 function pad(file, tw, th, out) {
   return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -i ${file} -y -vf "scale=${tw}:${th}:force_original_aspect_ratio=decrease,pad=${tw}:${th}:(ow-iw)/2:(oh-ih)/2" ${out}`, (error, stdout, stderr) => {
+    cmd(`ffmpeg -v error -i "${file}" -y -vf "scale=${tw}:${th}:force_original_aspect_ratio=decrease,pad=${tw}:${th}:(ow-iw)/2:(oh-ih)/2" "${out}"`, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
@@ -36,7 +36,7 @@ function pad(file, tw, th, out) {
 
 function convert(file, out) {
   return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -i ${file} -y -c:a aac -c:v h264 -r 60 -b:v 4M ${out}`, (error, stdout, stderr) => {
+    cmd(`ffmpeg -v error -i "${file}" -y -c:a aac -c:v h264 -r 60 -b:v 4M "${out}"`, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
@@ -48,10 +48,11 @@ function convert(file, out) {
 
 function concat(filelist, out) {
   return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -y -f concat -safe 0 -i ${filelist} -c copy ${out}`, (error, stdout, stderr) => {
+    cmd(`ffmpeg -v error -y -f concat -safe 0 -i "${filelist}" -c copy "${out}"`, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
+      console.error(stderr);
       console.log("Concated videos:", out);
       resolve(out);
     });
@@ -60,7 +61,7 @@ function concat(filelist, out) {
 
 function screenshot(file, time, out) {
   return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -ss ${time} -i ${file} -y -f image2 -r 1 -vframes 1 ${out}`, (error, stdout, stderr) => {
+    cmd(`ffmpeg -v error -ss ${time} -i "${file}" -y -f image2 -r 1 -vframes 1 "${out}"`, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
