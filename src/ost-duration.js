@@ -1,24 +1,41 @@
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment');
-const cmd = require("child_process").exec;
+const ffmpeg = require("./components/ffmpeg");
 
-const DIR = path.resolve(__dirname, "../build/gradian3/tmp");
+const CONST = require("./utils/constants");
+
+// Command line arguments
+const argv = require("yargs")
+  .option("dir", {
+    alias: "d",
+    describe: "The directory of videos",
+    demandOption: true,
+  })
+  .option("regex", {
+    alias: "r",
+    describe: "The regular expression to extract name",
+    demandOption: true,
+  })
+  .help()
+  .argv;
 
 main();
 
 async function main() {
-  const files = fs.readdirSync(DIR, { withFileTypes: true }).filter(file => file.isFile());
+  const VIDEOS_DIR = path.join(CONST.PWD, argv.dir);
+
+  const files = fs.readdirSync(VIDEOS_DIR, { withFileTypes: true }).filter(file => file.isFile() && file.name.endsWith(".mp4"));
 
   const ost = [];
 
   for (const file of files) {
-    const duration = await getDuration(path.join(DIR, file.name));
+    const duration = await ffmpeg.getDuration(path.join(VIDEOS_DIR, file.name));
     const filename = file.name
     ost.push({ filename, duration });
   }
 
-  const re = /\d+ Grandia III ost\s+-\s+(.*)\.mp4/;
+  const re = new RegExp(argv.regex);
 
   let duration = moment.duration(0);
 
@@ -35,7 +52,7 @@ async function main() {
       ? `${leadZero(h)}:${leadZero(m)}:${leadZero(s)}`
       : `${leadZero(m)}:${leadZero(s)}`;
 
-    console.log(`#${idx}. ${name} - ${time}`);
+    console.log(`#${idx}.(${time}) ${name}`);
   }
 }
 
@@ -43,15 +60,3 @@ function leadZero(x) {
   return ('0' + x).substr(-2);
 }
 
-async function getDuration(file) {
-  return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -i "${file}" 2>&1 | grep Duration`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      
-      const duration = stdout.split(',')[0].trim().split(' ')[1];
-      resolve(duration);
-    });
-  });
-}

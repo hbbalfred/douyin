@@ -2,6 +2,7 @@ const cmd = require("child_process").exec;
 
 module.exports = {
   getSize,
+  getDuration,
   pad,
   convert,
   concat,
@@ -21,6 +22,20 @@ function getSize(file) {
 		});
 	});
 }
+
+function getDuration(file) {
+  return new Promise((resolve, reject) => {
+    cmd(`ffmpeg -i "${file}" 2>&1 | grep Duration`, (error, stdout, stderr) => {
+      if (error) {
+        return reject(error);
+      }
+
+      const duration = stdout.split(',')[0].trim().split(' ')[1];
+      resolve(duration);
+    });
+  });
+}
+
 
 function pad(file, tw, th, out) {
   return new Promise((resolve, reject) => {
