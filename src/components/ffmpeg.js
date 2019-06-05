@@ -7,6 +7,7 @@ module.exports = {
   convert,
   concat,
   screenshot,
+  speed2x
 };
 
 function getSize(file) {
@@ -84,4 +85,21 @@ function screenshot(file, time, out) {
       resolve(out);
     });
   });
+}
+
+function speed2x(file, out) {
+  return new Promise((resolve, reject) => {
+    cmd(`ffmpeg -i "${file}" -filter_complex "[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]" -map "[v]" -map "[a]" "${out}"`, (error, stdout, stderr) => {
+      if (error) {
+        return reject(error);
+      }
+      if (stderr) {
+        return reject(stderr);
+      }
+
+      console.log("Speed 2x:", out);
+      resolve(out);
+    });
+  });
+  
 }
