@@ -2,14 +2,17 @@ const cmd = require("child_process").exec;
 
 module.exports = {
   getSize,
-  getDuration,
+	getDuration,
+	getInfo,
   pad,
   convert,
   concat,
   screenshot,
-  speed2x
+	speed2x,
+	mergeVideoAudio
 };
 
+/** @deprecated */
 function getSize(file) {
 	return new Promise((resolve, reject) => {
 		cmd(`ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "${file}"`, (error, stdout, stderr) => {
@@ -24,6 +27,7 @@ function getSize(file) {
 	});
 }
 
+/** @deprecated */
 function getDuration(file) {
   return new Promise((resolve, reject) => {
     cmd(`ffmpeg -i "${file}" 2>&1 | grep Duration`, (error, stdout, stderr) => {
@@ -35,6 +39,49 @@ function getDuration(file) {
       resolve(duration);
     });
   });
+}
+
+
+function getInfo(file) {
+	return new Promise((resolve, reject) => {
+		const fields = {
+			"width": { type: "int" },
+			"height": { type: "int" },
+			"duration": { type: "float" },
+			"bit_rate": { type: "float" },
+			"r_frame_rate": { type: "float", alias: "fps" },
+		};
+
+		const stream = Object.keys(fields).join(",");
+
+		// more https://trac.ffmpeg.org/wiki/FFprobeTips
+		cmd(`ffprobe -v error -select_streams v:0 -show_entries stream=${stream} -of default=noprint_wrappers=1 "${file}"`, (error, stdout, stderr) => {
+			if (error) {
+				return reject(error);
+			}
+			if (stderr) {
+				console.error(stderr);
+			}
+
+			const info = {};
+			for (const line of stdout.trim().split("\n")) {
+				let [key, val] = [...line.split("=")];
+
+				const field = fields[key];
+
+				switch (field.type) {
+					case "int": val = parseInt(val); break;
+					case "float": val = parseFloat(val); break;
+				}
+
+				key = field.alias || key;
+
+				info[key] = val;
+			}
+
+			resolve(info);
+		});
+	});
 }
 
 
@@ -50,9 +97,12 @@ function pad(file, tw, th, out) {
   });
 }
 
-function convert(file, out) {
+function convert(file, out, options) {
   return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -i "${file}" -y -c:a aac -c:v h264 -r 60 -b:v 4M "${out}"`, (error, stdout, stderr) => {
+		const fps = options.fps || 60;
+		const bit_rate = options.bit_rate || "4M";
+
+    cmd(`ffmpeg -v error -i "${file}" -y -c:a aac -c:v h264 -r ${fps} -b:v ${bit_rate} "${out}"`, (error, stdout, stderr) => {
       if (error) {
         return reject(error);
       }
@@ -94,12 +144,27 @@ function speed2x(file, out) {
         return reject(error);
       }
       if (stderr) {
-        return reject(stderr);
+				console.error(stderr);
       }
 
       console.log("Speed 2x:", out);
       resolve(out);
     });
   });
-  
+}
+
+function mergeVideoAudio(videoFile, audioFile, outFile) {
+	return new Promise((resolve, reject) => {
+		cmd(`ffmpeg -i "${videoFile}" -i "${audioFile}" -c copy "${outFile}"`, (error, stdout, stderr) => {
+			if (error) {
+				return reject(error);
+			}
+			if (stderr) {
+				console.error(stderr);
+			}
+
+			console.log("Merge video audio in 1:", outFile);
+			resolve(outFile);
+		});
+	});
 }

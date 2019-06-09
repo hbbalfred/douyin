@@ -32,10 +32,13 @@ async function main() {
       src: path.join(CONFIG.videoDir, file),
       tmp: path.join(CONFIG.tmpDir, file.replace(/'/g, "_")),
       old: path.join(CONFIG.tmpDir, file),
-    }));
-
+		}));
+		
+	const info = await calc(videoList);
+	console.log(`Compress video: bit_rate=${info.bit_rate}, fps=${info.fps}`);
+	
   for (const file of videoList) {
-    await nor(file);
+		await nor(file, info);
   }
 
   const filelist = videoList.map(file => `file '${file.tmp}'`).join("\n");
@@ -45,16 +48,28 @@ async function main() {
   await ffmpeg.concat(CONFIG.filelist, CONFIG.outputFile);
 }
 
-async function nor(file) {
-  const size = await ffmpeg.getSize(file.src);
-  if (size.width !== CONFIG.videoWidth || size.height !== CONFIG.videoHeight) {
+async function nor(file, options) {
+	const info = await ffmpeg.getInfo(file.src);
+	if (info.width !== CONFIG.videoWidth || info.height !== CONFIG.videoHeight) {
     await ffmpeg.pad(file.src, CONFIG.videoWidth, CONFIG.videoHeight, file.tmp);
     fs.copyFileSync(file.tmp, file.src);
   }
-  await ffmpeg.convert(file.src, file.tmp);
-  // if (file.old !== file.tmp) {
-  //   if (fs.existsSync(file.old)) {
-  //     fs.renameSync(file.old, file.tmp);
-  //   }
-  // }
+	await ffmpeg.convert(file.src, file.tmp, options);
+}
+
+async function calc(videoList) {
+	let maxFps = 0;
+	let maxBitrate = 0;
+
+	for (const file of videoList) {
+		const info = await ffmpeg.getInfo(file.src);
+		if (info.fps > maxFps) {
+			maxFps = info.fps;
+		}
+		if (info.bit_rate > maxBitrate) {
+			maxBitrate = info.bit_rate;
+		}
+	}
+
+	return { bit_rate: maxBitrate, fps: maxFps };
 }
