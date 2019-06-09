@@ -27,16 +27,11 @@ class YouTubeDownloader {
 		if (i === -1) return;
 
 		let id = pageUrl.substr(i + 2);
+		
 		i = id.indexOf("&");
+		id = i === -1 ? id : id.substr(0, i);
 
-		if (i === -1) {
-			
-		}
-		const pattern = /v=(\w+)/;
-		const results = pattern.exec(pageUrl);
-
-		const data = results && results[1];
-		return data;
+		return id;
 	}
 	static parseVideoTitle(pageSource) {
 		const pattern = /"title":"[^"]+"/g;
