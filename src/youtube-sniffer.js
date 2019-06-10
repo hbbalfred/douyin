@@ -1,49 +1,59 @@
+const fs = require("fs");
+const path = require("path");
+const CONST = require("./utils/constants");
 const network = require("./components/network");
+const YouTubeDownloader = require("./youtube/downloader");
+const YouTubeSniffer = require("./youtube/sniffer");
+const DataStorage = require("./components/data-storage");
 
-class YoutubeSniffer {
-	static parseNewestVideoData(pageSource) {
-		let i, j;
+// Command line arguments
+const argv = require("yargs")
+  .option("list", {
+    alias: "l",
+    describe: "The list file of urls to sniffing",
+    demandOption: true,
+  })
+  .option("savedir", {
+    alias: "d",
+    describe: "The directory to save video",
+    demandOption: false,
+  })
+  .help()
+  .argv;
 
-		i = pageSource.indexOf("window[\"ytInitialData\"]");
-		i = pageSource.indexOf("{", i);
-		j = pageSource.indexOf(";", i);
+const YOUTUBE_DATA_FILE = path.join(CONST.PWD, "data/youtube.dat");
+const YOUTUBER_URLS_FILE = path.join(CONST.PWD, "data/youtuber-urls");
 
-		let data = JSON.parse(pageSource.slice(i, j));
+const list = fs.readFileSync(YOUTUBER_LIST_FILE, { encoding: "utf8" }).split("\n");
 
-		data = _get(data, "contents.twoColumnBrowseResultsRenderer.tabs", []);
-		data = data.find(it => _get(it, "tabRenderer.content"));
-		data = _get(data, "tabRenderer.content.sectionListRenderer.contents.0.itemSectionRenderer.contents.0.gridRenderer.items.0.gridVideoRenderer", {});
+class KO {
+  constructor(url) {
+    this._url = url;
+  }
 
-		return data;
-	}
+  start() {
 
-	constructor(pageUrl, interval) {
-		this._pageUrl = pageUrl;
-		this._interval = interval;
-		this._started = null;
-	}
+  }
 
-	start() {
-		if (!this._started) {
-			this._started = setInterval(() => this.execute(), this._interval);
-		}
-	}
+  next() {
+    
+  }
 
-	async execute() {
-		const pageSource = await network.loadPageSource(this._pageUrl, { proxy: true });
+  async execute() {
+    const videoData = await youtube.sniff(this._url);
+    const videoId = _get(videoData, "videoId");
 
-		const videoData = YoutubeSniffer.parseNewestVideoData(pageSource);
+    if (!videoId) {
+      return console.error("Fail to get video id in invalid page url:", this._url);
+    }
 
-		if (!videoData) {
-			throw new Error("Invalid page source code to parse the newest video data");
-		}
+    const exists = await storage.exists(videoId);
+    if (!exists) {
+      await youtube.download(videoId);
+      await storage.save(videoId);
+    }
 
-		const exists = await this._storage.exists(videoData.videoId);
-
-		if (!exists) {
-			await this._downloader.load();
-			await this._storage.save(videoData.videoId);
-		}
-		
-	}
+    await sys.sleep(this._sleepTime);
+    this.next();
+  }
 }

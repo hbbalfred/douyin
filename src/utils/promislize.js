@@ -28,3 +28,9 @@ exp.writeFileAsync = function writeFileAsync(path, content) {
 		fs.writeFile(path, content, { encoding: "utf8" }, (error) => error ? reject(error) : resolve());
 	});
 };
+
+exp.readFileAsync = function readFileAsync(path) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(path, content, { encoding: "utf8" }, (error, data) => error ? reject(error) : resolve(data));
+  });
+};
