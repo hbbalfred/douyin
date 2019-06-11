@@ -1,170 +1,122 @@
-const cmd = require("child_process").exec;
+const exec = require("child_process").exec;
 
-module.exports = {
-  getSize,
-	getDuration,
-	getInfo,
-  pad,
-  convert,
-  concat,
-  screenshot,
-	speed2x,
-	mergeVideoAudio
+const exp = module.exports;
+
+const EXTRACT_INFO_FIELDS = {
+	"width": { type: "int" },
+	"height": { type: "int" },
+	"duration": { type: "float" },
+	"bit_rate": { type: "float" },
+	"r_frame_rate": { type: "float", alias: "fps" },
 };
 
-/** @deprecated */
-function getSize(file) {
-	return new Promise((resolve, reject) => {
-		cmd(`ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "${file}"`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      const wh = stdout.split('x');
-      const width = parseInt(wh[0]) || 0;
-      const height = parseInt(wh[1]) || 0;
-      resolve({ width, height });
+/**
+ * get video info
+ * @see https://trac.ffmpeg.org/wiki/FFprobeTips
+ */
+exp.getInfo = function getInfo(file) {
+	const stream = Object.keys(fields).join(",");
+	const command = `ffprobe -v error -select_streams v:0 -show_entries stream=${stream} -of default=noprint_wrappers=1 "${file}"`;
+
+	const convert = (type, value) => {
+		switch (type) {
+			case "int": return parseInt(value, 10);
+			case "float": return parseFloat(value);
+			default: return value;
+		}
+	};
+
+	return executeCommand(command, (stdout, stderr) => {
+		const fields = stdout.trim().split("\n").map(line => {
+			const [name, value] = [...line.split("=")];
+			return { name, value };
 		});
+
+		const info = fields.reduce((dict, field) => {
+			const def = EXTRACT_INFO_FIELDS[field.name];
+
+			const k = def.alias || field.name;
+			const v = convert(def.type, field.value);
+			dict[k] = v;
+
+			return dict;
+		}, {});
+
+		return info;
 	});
 }
 
-/** @deprecated */
-function getDuration(file) {
-  return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -i "${file}" 2>&1 | grep Duration`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-
-      const duration = stdout.split(',')[0].trim().split(' ')[1];
-      resolve(duration);
-    });
-  });
+/**
+ * pad video
+ * @param options { width, height }
+ */
+exp.pad = function pad(sourceFile, destFile, options) {
+	const { width, height } = options;
+	const command = `ffmpeg -v error -i "${sourceFile}" -y -vf "scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2" "${destFile}"`;
+	return executeCommand(command);
 }
 
+/**
+ * convert video
+ */
+exp.convert = function convert(sourceFile, destFile, options) {
+	const {
+		fps = 30,
+		bit_rate = "1M",
+		video_encode = "h264",
+		audio_encode = "aac",
+	} = options;
 
-function getInfo(file) {
+	const command = `ffmpeg -v error -i "${sourceFile}" -y -c:a ${audio_encode} -c:v ${video_encode} -r ${fps} -b:v ${bit_rate} "${destFile}"`;
+	return executeCommand(command);
+}
+
+/**
+ * concat videos by file list
+ */
+exp.concat = function concat(listFile, destFile) {
+	const command = `ffmpeg -v error -y -f concat -safe 0 -i "${listFile}" -c copy "${destFile}"`;
+	return executeCommand(command);
+}
+
+/**
+ * screenshot video
+ */
+exp.screenshot = function screenshot(sourceFile, destFile, options) {
+	const { time } = options;
+	const command = `ffmpeg -v error -ss ${time} -i "${sourceFile}" -y -f image2 -r 1 -vframes 1 "${destFile}"`;
+	return executeCommand(command);
+}
+
+/**
+ * speed 2x
+ */
+exp.speed2x = function speed2x(sourceFile, destFile) {
+	const command = `ffmpeg -i "${sourceFile}" -filter_complex "[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]" -map "[v]" -map "[a]" "${destFile}"`;
+	return executeCommand(command);
+}
+
+/**
+ * merge video and audio in one file
+ */
+exp.merge = function merge(videoFile, audioFile, destFile) {
+	const command = `ffmpeg -i "${videoFile}" -i "${audioFile}" -c copy "${destFile}"`;
+	return executeCommand(command);
+}
+
+function executeCommand(command, handler) {
 	return new Promise((resolve, reject) => {
-		const fields = {
-			"width": { type: "int" },
-			"height": { type: "int" },
-			"duration": { type: "float" },
-			"bit_rate": { type: "float" },
-			"r_frame_rate": { type: "float", alias: "fps" },
-		};
-
-		const stream = Object.keys(fields).join(",");
-
-		// more https://trac.ffmpeg.org/wiki/FFprobeTips
-		cmd(`ffprobe -v error -select_streams v:0 -show_entries stream=${stream} -of default=noprint_wrappers=1 "${file}"`, (error, stdout, stderr) => {
+		exec(command, (error, stdout, stderr) => {
 			if (error) {
 				return reject(error);
 			}
-			if (stderr) {
-				console.error(stderr);
+
+			let returnVal;
+			if (typeof handler === "function") {
+				returnVal = handler(stdout, stderr);
 			}
 
-			const info = {};
-			for (const line of stdout.trim().split("\n")) {
-				let [key, val] = [...line.split("=")];
-
-				const field = fields[key];
-
-				switch (field.type) {
-					case "int": val = parseInt(val); break;
-					case "float": val = parseFloat(val); break;
-				}
-
-				key = field.alias || key;
-
-				info[key] = val;
-			}
-
-			resolve(info);
-		});
-	});
-}
-
-
-function pad(file, tw, th, out) {
-  return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -i "${file}" -y -vf "scale=${tw}:${th}:force_original_aspect_ratio=decrease,pad=${tw}:${th}:(ow-iw)/2:(oh-ih)/2" "${out}"`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      console.log("Padded video:", file);
-      resolve(out);
-    });
-  });
-}
-
-function convert(file, out, options) {
-  return new Promise((resolve, reject) => {
-		const fps = options.fps || 60;
-		const bit_rate = options.bit_rate || "4M";
-
-    cmd(`ffmpeg -v error -i "${file}" -y -c:a aac -c:v h264 -r ${fps} -b:v ${bit_rate} "${out}"`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      console.log("Converted video:", file);
-      resolve(out);
-    });
-  });
-}
-
-function concat(filelist, out) {
-  return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -y -f concat -safe 0 -i "${filelist}" -c copy "${out}"`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      console.error(stderr);
-      console.log("Concated videos:", out);
-      resolve(out);
-    });
-  });
-}
-
-function screenshot(file, time, out) {
-  return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -v error -ss ${time} -i "${file}" -y -f image2 -r 1 -vframes 1 "${out}"`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      console.log("Captured screenshot:", out);
-      resolve(out);
-    });
-  });
-}
-
-function speed2x(file, out) {
-  return new Promise((resolve, reject) => {
-    cmd(`ffmpeg -i "${file}" -filter_complex "[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]" -map "[v]" -map "[a]" "${out}"`, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      if (stderr) {
-				console.error(stderr);
-      }
-
-      console.log("Speed 2x:", out);
-      resolve(out);
-    });
-  });
-}
-
-function mergeVideoAudio(videoFile, audioFile, outFile) {
-	return new Promise((resolve, reject) => {
-		cmd(`ffmpeg -i "${videoFile}" -i "${audioFile}" -c copy "${outFile}"`, (error, stdout, stderr) => {
-			if (error) {
-				return reject(error);
-			}
-			if (stderr) {
-				console.error(stderr);
-			}
-
-			console.log("Merge video audio in 1:", outFile);
-			resolve(outFile);
+			resolve(returnVal);
 		});
 	});
 }

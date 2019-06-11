@@ -1,6 +1,6 @@
 const fs = require("fs");
-const mime = require("mime");
 const path = require("path");
+const mime = require("mime");
 const request = require("request");
 
 const DEFAULT_PROXY = "http://127.0.0.1:1087";
@@ -8,20 +8,27 @@ const DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) Appl
 
 const exp = module.exports;
 
-exp.loadPageSource = async function loadPageSource(uri, options) {
+/**
+ * load data
+ */
+exp.loadData = function loadData(url, options) {
 	return new Promise((resolve, reject) => {
-		// fs.readFile("/Users/hbb/Documents/workspace/douyin/bar", {encoding:"utf-8"}, (error, data) => error ? reject(error) : resolve(data));
-		const requestOptions = makeLoadOptions(uri, "text/html", options);
+		const { contentType = "text/plain" } = options;
+
+		const requestOptions = makeLoadOptions(url, contentType, options);
 
 		request(requestOptions, (error, _, body) => error ? reject(error) : resolve(body));
 	});
 };
 
-exp.loadFileTo = async function loadFileTo(uri, savedFile, options) {
+/**
+ * load data to destination
+ */
+exp.loadDataTo = function loadDataTo(url, destFile, options) {
 	return new Promise((resolve, reject) => {
-		const ext = path.extname(savedFile);
+		const ext = path.extname(destFile);
 		const mimeType = (ext && mime.getType(ext)) || "application/octet-stream";
-		const requestOptions = makeLoadOptions(uri, mimeType, options);
+		const requestOptions = makeLoadOptions(url, mimeType, options);
 
 		let loadedBytes = 0, totalBytes = 0;
 
@@ -35,22 +42,22 @@ exp.loadFileTo = async function loadFileTo(uri, savedFile, options) {
 				}
 			})
 			.on("complete", () => resolve())
-			.pipe(fs.createWriteStream(savedFile))
+			.pipe(fs.createWriteStream(destFile))
 			.on("error", error => reject(error));
 	});
 }
 
-function makeLoadOptions(uri, mimeType, params) {
-	params = params || {};
+function makeLoadOptions(uri, mimeType, options) {
+	options = options || {};
 
-	if (typeof params.proxy !== "string" && params.proxy) {
-		params.proxy = DEFAULT_PROXY;
+	if (typeof options.proxy !== "string" && options.proxy) {
+		options.proxy = DEFAULT_PROXY;
 	}
 
 	return {
 		uri,
 		method: "GET",
-		proxy: params.proxy,
+		proxy: options.proxy,
 		headers: {
 			"accept": mimeType,
 			"user-agent": DEFAULT_USER_AGENT,

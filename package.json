@@ -1,9 +1,13 @@
 {
   "private": true,
   "name": "douyin",
-  "version": "1.0.0",
-  "description": "A scrapy of douyin in Node.js",
-  "main": "index.js",
+	"version": "1.0.1",
+	"description": "A scrapy library of Node.js",
+	"author": "hbb",
+	"scripts": {
+		"lint": "eslint src",
+		"lint:fix": "eslint --fix src"
+	},
   "dependencies": {
     "gm": "^1.23.1",
     "lodash": "^4.17.11",
@@ -13,16 +17,14 @@
     "rimraf": "^2.6.3",
     "yargs": "^13.2.1"
   },
-  "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "devDependencies": {
+    "eslint": "^5.16.0"
   },
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hbbalfred/douyin.git"
   },
-  "author": "hbb",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/hbbalfred/douyin/issues"
   },
