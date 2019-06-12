@@ -1,13 +1,13 @@
 {
   "private": true,
   "name": "douyin",
-	"version": "1.0.1",
-	"description": "A scrapy library of Node.js",
-	"author": "hbb",
-	"scripts": {
-		"lint": "eslint lib",
-		"lint:fix": "eslint --fix lib"
-	},
+  "version": "1.0.1",
+  "description": "A scrapy library of Node.js",
+  "author": "hbb",
+  "scripts": {
+    "lint": "eslint lib",
+    "lint:fix": "eslint --fix lib"
+  },
   "dependencies": {
     "gm": "^1.23.1",
     "lodash": "^4.17.11",
@@ -18,9 +18,12 @@
     "yargs": "^13.2.1"
   },
   "devDependencies": {
-    "eslint": "^5.16.0"
+    "eslint": "^5.16.0",
+    "pre-commit": "^1.2.2"
   },
-  
+  "pre-commit": [
+    "lint"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hbbalfred/douyin.git"
