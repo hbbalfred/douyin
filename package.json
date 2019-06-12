@@ -5,8 +5,8 @@
 	"description": "A scrapy library of Node.js",
 	"author": "hbb",
 	"scripts": {
-		"lint": "eslint src",
-		"lint:fix": "eslint --fix src"
+		"lint": "eslint lib",
+		"lint:fix": "eslint --fix lib"
 	},
   "dependencies": {
     "gm": "^1.23.1",

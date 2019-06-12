@@ -1,22 +1,27 @@
-const loading_log = (n) => {
-	if (n > 0) {
-		process.stdout.write("\u001b[2K")
-		process.stdout.write("\u001b[u")
-	}
-	process.stdout.write("\u001b[s");
-	process.stdout.write(`loading ${n}%`);
-};
+const sys = require("./lib/modules/sys");
+let logger;
+test();
 
-const loading = (i) => {
-	if (i === 0) {
-		console.log('start');
-	} else if (i === 10) {
-		return console.log('end');
-	} 
+async function test() {
+  logger = sys.singleLineLog();
+  await loading();
 
-	
-	loading_log(i);
-	setTimeout(() => loading(++i), 200);
+  logger = sys.singleLineLog();
+  await loading("clean");
 }
 
-loading(0);
+async function loading(mod) {
+  return new Promise((r, _) => {
+    let i = 0;
+    console.log("start to load");
+    let id = setInterval(() => {
+      logger.log(`loading...${++i}%`);
+
+      if (i >= 100) {
+        logger.end(mod);
+        console.log("completed");
+        clearInterval(id);
+      }
+    }, 20);
+  });
+}
