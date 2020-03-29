@@ -7,8 +7,8 @@
 import fs from "fs";
 import got from "got";
 import ProgressBar from "progress";
-import stream from 'stream';
-import { promisify } from 'util';
+import stream from "stream";
+import { promisify } from "util";
 import { dump, logger } from "./_shared";
 
 const pipeline = promisify(stream.pipeline);
@@ -56,7 +56,7 @@ async function download(url: string, to: string, size?: number) {
   const headers = {
     "content-length": size ? size.toString() : undefined,
     ...COMMON_HTTP_HEADERS
-  }
+  };
 
   await pipeline(
     got.stream(url, { headers }).on("downloadProgress", process => {/* TODO: */}),
