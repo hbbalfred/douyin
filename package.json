@@ -17,12 +17,14 @@
     "mime": "^2.4.3",
     "mkdirp": "^1.0.3",
     "moment": "^2.24.0",
+    "progress": "^2.0.3",
     "rimraf": "^2.6.3",
     "yargs": "^13.2.1"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.149",
     "@types/mkdirp": "^1.0.0",
+    "@types/progress": "^2.0.3",
     "@types/yargs": "^15.0.4",
     "@typescript-eslint/eslint-plugin": "^2.25.0",
     "@typescript-eslint/parser": "^2.25.0",

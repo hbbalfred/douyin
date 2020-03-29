@@ -6,7 +6,12 @@
 
 import fs from "fs";
 import got from "got";
+import ProgressBar from "progress";
+import stream from 'stream';
+import { promisify } from 'util';
 import { dump, logger } from "./_shared";
+
+const pipeline = promisify(stream.pipeline);
 
 
 /**
@@ -45,10 +50,17 @@ export async function psc(url: string) {
  * start loader queue to download media
  * @param queue loader queue
  */
-async function download(queue: any[] /*FIXME:*/) {
-  logger.verbose("Start to load queue have (%d) loaders", queue.length);
-  for (const loader of queue) {
-    await loader.start();
+async function download(url: string, to: string, size?: number) {
+  logger.verbose("Download %s", url);
+
+  const headers = {
+    "content-length": size ? size.toString() : undefined,
+    ...COMMON_HTTP_HEADERS
   }
+
+  await pipeline(
+    got.stream(url, { headers }).on("downloadProgress", process => {/* TODO: */}),
+    fs.createWriteStream(url)
+  );
 }
 
