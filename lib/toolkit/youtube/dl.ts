@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////
 
 import fs from "fs";
-import got from "got";
+import got, { Progress } from "got";
 import ProgressBar from "progress";
 import stream from "stream";
 import { promisify } from "util";
@@ -50,17 +50,26 @@ export async function psc(url: string) {
  * start loader queue to download media
  * @param queue loader queue
  */
-async function download(url: string, to: string, size?: number) {
+export async function download(url: string, to: string, size?: number) {
   logger.verbose("Download %s", url);
 
   const headers = {
-    "content-length": size ? size.toString() : undefined,
+    "connection": "keep-alive",
     ...COMMON_HTTP_HEADERS
   };
 
+  const bar = new ProgressBar("  downloading [:bar] :rate/bps :percent :etas", {
+    complete: "=",
+    incomplete: " ",
+    width: 60,
+    total: size || 1024 << 10,
+  });
+
   await pipeline(
-    got.stream(url, { headers }).on("downloadProgress", process => {/* TODO: */}),
-    fs.createWriteStream(url)
+    got.stream(url, { headers }).on("downloadProgress", (process: Progress) => {
+      bar.total = process.total || bar.total;
+      bar.update(process.percent);
+    }),
+    fs.createWriteStream(to)
   );
 }
-

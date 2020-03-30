@@ -38,7 +38,7 @@ export interface IMediaFormat {
   mimeType: string;
   bitrate: number;
   initRange?: object;
-  contentLength: number;
+  contentLength: string;
   qualityLabel: string;
 }
 

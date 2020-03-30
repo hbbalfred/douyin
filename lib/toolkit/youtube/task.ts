@@ -1,4 +1,6 @@
+import fs from "fs";
 import { logger } from "./_shared";
+import { download } from "./dl";
 
 
 /**
@@ -36,13 +38,21 @@ export class DownloadTask implements ITask {
   }
 
   async start() {
-    logger.error("TODO:");
+    logger.silly("DownloadTask Start");
+    const path = this.option.path || "/dev/null";
+
+    if (this.option.force || !fs.existsSync(path)) {
+      await download(this.url, path, this.option.size);
+    }
+    
+    logger.verbose("Save file at %s", path);
   }
 }
 
 interface IDownloadTaskOption {
   path?: string;
   size?: number;
+  force?: boolean;
 }
 
 
@@ -55,7 +65,9 @@ export class MergeVideoTask implements ITask {
   }
 
   async start() {
-    logger.error("TODO:");
+    logger.silly("MergeVideoTask Start");
+    await require("../../modules/ffmpeg").merge(this.option.videoPath, this.option.audioPath, this.option.mergePath);
+    logger.silly("MergeVideoTask Finish");
   }
 }
 

@@ -18,6 +18,11 @@ const argv = yargs
     description: "[mp3|m4a|360p|480p|720p|1080p|4k|8k]",
     default: "360p",
   })
+  .option("force", {
+    type: "boolean",
+    description: "override file, even if the file exists already",
+    default: false,
+  })
   .help()
   .argv;
 
@@ -39,7 +44,7 @@ function start(input: string) {
     .then(s => s.type === "playlist" ? extract(s.id) : pack(s.id))
     .then(t => t.start())
     .then(_ => logger.info("Complete"))
-    .catch(error => logger.error(error.message));
+    .catch(error => assert(false, error.message));
 }
 
 /**
@@ -105,25 +110,33 @@ async function pack(video: string): Promise<ITask> {
   
   const info = parser.getMediaDownloadInfo(data);
 
+  logger.verbose("Pack video info:");
+  logger.verbose(" title=%s", info.details.title);
+
   const dir = path.join(process.cwd(), argv.outDir);
 
   if (argv.format === "m4a") {
     const audio = pickAudio(info.formats);
+    logger.verbose("  audio mime=%s, bitrate=%d", audio.mimeType, audio.bitrate);
     return new DownloadTask(audio.url, {
       path: path.join(dir, safeFilename(info.details.title) + ".m4a"), 
-      size: audio.contentLength
+      size: parseInt(audio.contentLength, 10),
+      force: argv.force,
     });
   }
   else {
     const audio = pickAudio(info.formats);
     const video = pickVideo(info.formats, argv.format);
+    logger.verbose("  audio mime=%s, bitrate=%d", audio.mimeType, audio.bitrate);
+    logger.verbose("  video mime=%s, bitrate=%d, quality=%s", video.mimeType, video.bitrate, video.qualityLabel);
     const filename = safeFilename(info.details.title);
-    const audioPath = path.join(dir, filename + ".m4a");
-    const videoPath = path.join(dir, filename + ".mp4");
+    const audioPath = path.join(dir, filename + "_.m4a");
+    const videoPath = path.join(dir, filename + "_.mp4");
+    const mergePath = path.join(dir, filename + ".mp4");
     return new QueueTask()
-      .add(new DownloadTask(audio.url, { path: audioPath, size: audio.contentLength }))
-      .add(new DownloadTask(video.url, { path: videoPath, size: video.contentLength }))
-      .add(new MergeVideoTask({ audioPath, videoPath }))
+      .add(new DownloadTask(audio.url, { path: audioPath, size: parseInt(audio.contentLength, 10), force: argv.force }))
+      .add(new DownloadTask(video.url, { path: videoPath, size: parseInt(video.contentLength, 10), force: argv.force }))
+      .add(new MergeVideoTask({ audioPath, videoPath, mergePath }))
     ;
   }
 }
