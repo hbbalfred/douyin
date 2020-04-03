@@ -4,12 +4,13 @@ import { assert, dump, logger } from "./_shared";
 import * as dl from "./dl";
 import * as parser from "./parser";
 import { ITask, QueueTask, DownloadTask, MergeVideoTask } from "./task";
+import mkdirp from "mkdirp";
 
 const argv = yargs
   .option("outDir", {
     alias: "o",
     type: "string",
-    description: "The directory to save videos",
+    description: "the directory to save videos",
     demandOption: true,
   })
   .option("format", {
@@ -17,6 +18,11 @@ const argv = yargs
     type: "string",
     description: "[mp3|m4a|360p|480p|720p|1080p|4k|8k]",
     default: "360p",
+  })
+  .option("startVideoId", {
+    alias: "i",
+    type: "string",
+    description: "the video id of start downloading in playlist",
   })
   .option("force", {
     type: "boolean",
@@ -74,7 +80,7 @@ export async function resolve(link: string) {
  * @param playlist id
  */
 async function extract(playlist: string): Promise<ITask> {
-  logger.verbose("Extract playlist: %s", playlist);
+  logger.info("Extract playlist: %s", playlist);
 
   const link = `https://www.youtube.com/playlist?list=${playlist}`;
   const cont = await dl.psc(link);
@@ -82,12 +88,19 @@ async function extract(playlist: string): Promise<ITask> {
   if (process.env.DEBUG) {
     dump(JSON.stringify(data, null, 2), { annotation: `Extract page data from ${link}`, type: "JSON" });
   }
-  const list = parser.getVideoList(data);
+  let list = parser.getVideoList(data);
 
   list.forEach(video => logger.verbose(video.title));
   logger.verbose("Total %d videos", list.length);
 
-  const queue = new QueueTask();
+  if (argv.startVideoId) {
+    const i = list.findIndex(v => v.video === argv.startVideoId);
+    assert(i !== -1, "Oops, invalid video id for starting: %s", argv.startVideoId);
+    list = list.slice(i);
+    logger.info("Start from %s, remain %d videos to download", list[0].title, list.length);
+  }
+
+  const queue = new QueueTask(`ExtractPlaylist<${playlist}>`);
   for (const v of list) {
     queue.add(await pack(v.video));
   }
@@ -99,7 +112,7 @@ async function extract(playlist: string): Promise<ITask> {
  * @param video id
  */
 async function pack(video: string): Promise<ITask> {
-  logger.verbose("Pack a loader of video %s", video);
+  logger.info("Pack a loader of video %s", video);
 
   const link = `https://www.youtube.com/watch?v=${video}`;
   const cont = await dl.psc(link);
@@ -114,6 +127,7 @@ async function pack(video: string): Promise<ITask> {
   logger.verbose(" title=%s", info.details.title);
 
   const dir = path.join(process.cwd(), argv.outDir);
+  await mkdirp(dir);
 
   if (argv.format === "m4a") {
     const audio = pickAudio(info.formats);
@@ -133,7 +147,7 @@ async function pack(video: string): Promise<ITask> {
     const audioPath = path.join(dir, filename + "_.m4a");
     const videoPath = path.join(dir, filename + "_.mp4");
     const mergePath = path.join(dir, filename + ".mp4");
-    return new QueueTask()
+    return new QueueTask(`PackVideo<${info.details.videoId}>`)
       .add(new DownloadTask(audio.url, { path: audioPath, size: parseInt(audio.contentLength, 10), force: argv.force }))
       .add(new DownloadTask(video.url, { path: videoPath, size: parseInt(video.contentLength, 10), force: argv.force }))
       .add(new MergeVideoTask({ audioPath, videoPath, mergePath }))

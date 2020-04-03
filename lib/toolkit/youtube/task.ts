@@ -16,15 +16,20 @@ export interface ITask {
 export class QueueTask implements ITask {
   private readonly children: ITask[] = [];
 
+  constructor(private readonly name = "queue") {
+  }
+
   add(task: ITask) {
     this.children.push(task);
     return this;
   }
 
   async start() {
+    logger.silly("QueueTask [%s] Start", this.name);
     for (const task of this.children) {
       await task.start();
     }
+    logger.silly("QueueTask [%s] Finish", this.name);
   }
 }
 
@@ -46,6 +51,7 @@ export class DownloadTask implements ITask {
     }
     
     logger.verbose("Save file at %s", path);
+    logger.silly("DownloadTask Finish");
   }
 }
 
