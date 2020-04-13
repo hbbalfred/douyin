@@ -29,6 +29,10 @@ const argv = yargs
     description: "override file, even if the file exists already",
     default: false,
   })
+  .option("cache", {
+    type: "string",
+    description: "the directory to cache page source code",
+  })
   .help()
   .argv;
 
@@ -42,8 +46,12 @@ case "4k": logger.warn("4k not impl, use 1080p instead"); argv.format = "1080p";
 case "8k": logger.warn("8k not impl, use 1080p instead"); argv.format = "1080p"; break;
 }
 
-// the env 'MOCK_FILE' intended to local testing, but it seems not very easy to use.
-start(process.env.MOCK_FILE || argv._[0]);
+if (argv.cache) {
+  argv.cache = path.resolve(process.cwd(), argv.cache);
+  mkdirp(argv.cache).then(_ => start(argv._[0]));
+} else {
+  start(argv._[0]);
+}
 
 function start(input: string) {
   resolve(input)
@@ -83,7 +91,8 @@ async function extract(playlist: string): Promise<ITask> {
   logger.info("Extract playlist: %s", playlist);
 
   const link = `https://www.youtube.com/playlist?list=${playlist}`;
-  const cont = await dl.psc(link);
+  const cache = argv.cache ? path.join(argv.cache, safeFilename(link)) : "";
+  const cont = await dl.psc(link, cache);
   const data = parser.parsePageData(cont);
   if (process.env.DEBUG) {
     dump(JSON.stringify(data, null, 2), { annotation: `Extract page data from ${link}`, type: "JSON" });
@@ -115,7 +124,8 @@ async function pack(video: string): Promise<ITask> {
   logger.info("Pack a loader of video %s", video);
 
   const link = `https://www.youtube.com/watch?v=${video}`;
-  const cont = await dl.psc(link);
+  const cache = argv.cache ? path.join(argv.cache, safeFilename(link)) : "";
+  const cont = await dl.psc(link, cache);
   const data = parser.parseMediaConfig(cont);
   if (process.env.DEBUG) {
     dump(JSON.stringify(data, null, 2), { annotation: `Extract media config from ${link}`, type: "JSON" });

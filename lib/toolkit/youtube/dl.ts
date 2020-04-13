@@ -25,17 +25,22 @@ const COMMON_HTTP_HEADERS = {
  * download page source code
  * @param url 
  */
-export async function psc(url: string) {
+export async function psc(url: string, cache?: string) {
   logger.verbose("Load %s", url);
 
   const headers = { ...COMMON_HTTP_HEADERS };
 
   let content: string;
 
-  if (process.env.MOCK_FILE) {
-    content = fs.readFileSync(process.env.MOCK_FILE, "utf-8");
+  if (cache && fs.existsSync(cache)) {
+    logger.silly("Hit cache");
+    content = fs.readFileSync(cache, "utf-8");
   } else {
     content = await got.get(url, { headers }).text();
+  }
+
+  if (cache && !fs.existsSync(cache)) {
+    fs.writeFileSync(cache, content);
   }
 
   if (process.env.DEBUG) {
