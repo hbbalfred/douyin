@@ -1,3 +1,4 @@
+import * as path from "https://deno.land/std/path/mod.ts";
 
 export const logger = {
   error: console.error,
@@ -49,10 +50,10 @@ export function dump(content: string, option: IDumpOption = {}) {
     }
   };
 
-  const dir = Deno.cwd() + "/build/debug";
+  const dir = path.join(Deno.cwd(), "/build/debug");
 
   Deno.mkdir(dir, true).then(_ => {
-    const file = `${dir}/${time.getTime()}.dump`;
+    const file = path.join(dir, time.getTime() + ".dump");
     logger.silly("Dump file: %s", file);
     Deno.writeFile(file, new TextEncoder().encode(data));
   }).catch(errorLog);
