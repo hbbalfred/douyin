@@ -45,7 +45,7 @@ export async function psc(url: string, cache?: string) {
 
   if (process.env.DEBUG) {
     logger.debug("Content length: %d", content.length);
-    dump(content, { annotation: `Download page source code from ${url}`, type: "HTML" });
+    await dump(content, { annotation: `Download page source code from ${url}`, type: "HTML" });
   }
 
   return content;

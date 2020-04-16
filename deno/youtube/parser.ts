@@ -5,8 +5,8 @@
 //
 //////////////////////////////////////////////////////////////////////////////////////////
 
-import { assert, dump, logger } from "./_shared";
 import get from "https://deno.land/x/lodash/get.js";
+import { assert, dump, logger } from "./_shared.ts";
 
 /**
  * partial `player_resonse.videoDetails`
@@ -62,7 +62,7 @@ export function getMediaDownloadInfo(data: object) {
   const details: IMediaDetails = get(json, "videoDetails", {});
   assert(details.videoId && details.title, "Failed to parse media info, invalid video details");
 
-  if (process.env.DEBUG) {
+  if (Deno.env().DEBUG) {
     dump(JSON.stringify(json, null, 2), { annotation: `video.player_response ${details.videoId}`, type: "JSON" });
   }
 

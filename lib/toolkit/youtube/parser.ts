@@ -46,7 +46,7 @@ export interface IMediaFormat {
  * Parse media download info from the parsed data of video psc
  * @param data parsed json data
  */
-export function getMediaDownloadInfo(data: object) {
+export async function getMediaDownloadInfo(data: object) {
   const resp = get(data, "args.player_response");
   assert(resp, "Failed to parse media info. Not found 'args.player_response'");
 
@@ -56,14 +56,13 @@ export function getMediaDownloadInfo(data: object) {
     json = JSON.parse(resp);
   } catch (error) {
     assert(false, "Failed to parse media info. %s", error.message);
-    json = {};
   }
 
   const details: IMediaDetails = get(json, "videoDetails", {});
   assert(details.videoId && details.title, "Failed to parse media info, invalid video details");
 
   if (process.env.DEBUG) {
-    dump(JSON.stringify(json, null, 2), { annotation: `video.player_response ${details.videoId}`, type: "JSON" });
+    await dump(JSON.stringify(json, null, 2), { annotation: `video.player_response ${details.videoId}`, type: "JSON" });
   }
 
   // it's a trick to identify the format can downloadable
@@ -111,7 +110,6 @@ export function parseMediaConfig(psc: string) {
     return JSON.parse(code) as object;
   } catch (error) {
     assert(false, "Failed to parse media player data, %s", error.message);
-    throw error;
   }
 }
 
@@ -134,6 +132,5 @@ export function parsePageData(psc: string) {
     return JSON.parse(code) as object;
   } catch (error) {
     assert(false, "Failed to parse page data, %s", error.message);
-    throw error;
   }
 }

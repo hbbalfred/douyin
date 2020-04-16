@@ -1,44 +1,64 @@
-import path from "path";
-import yargs from "yargs";
-import { assert, dump, logger } from "./_shared";
-import * as dl from "./dl";
-import * as parser from "./parser";
-import { ITask, QueueTask, DownloadTask, MergeVideoTask } from "./task";
-import mkdirp from "mkdirp";
+import * as path from "https://deno.land/std/path/mod.ts";
+import { assert, dump, logger } from "./_shared.ts";
+import * as dl from "./dl.ts";
+import * as parser from "./parser.ts";
+import { ITask, QueueTask, DownloadTask, MergeVideoTask } from "./task.ts";
 
-const argv = yargs
-  .option("outDir", {
-    alias: "o",
-    type: "string",
-    description: "the directory to save videos",
-    demandOption: true,
-  })
-  .option("format", {
-    alias: "f",
-    type: "string",
-    description: "[mp3|m4a|360p|480p|720p|1080p|4k|8k]",
-    default: "360p",
-  })
-  .option("startVideoId", {
-    alias: "i",
-    type: "string",
-    description: "the video id of start downloading in playlist",
-  })
-  .option("force", {
-    type: "boolean",
-    description: "override file, even if the file exists already",
-    default: false,
-  })
-  .option("cache", {
-    type: "string",
-    description: "the directory to cache page source code",
-  })
-  .help()
-  .argv;
+const help = `
+export HTTP_PROXY=http://127.0.0.1:1081
+export HTTPS_PROXY=http://127.0.0.1:1081
+export NO_PROXY=127.0.0.1,localhost
 
-if (process.env.DEBUG) {
-  logger.warn("YOU ARE IN DEBUG MODE");
-}
+deno run \
+  --allow-env    \
+  --allow-net    \
+  --allow-write  \
+  --allow-read   \
+  --allow-run    \
+  youtube/index.ts https://www.youtube.com/watch?v=4JsyJwFzHIc 
+`;
+
+// FIXME: rewrite in https://deno.land/typedoc/index.html#args
+const argv = {
+  outDir: Deno.cwd() + "/../build/tmp",
+  format: "360p",
+  startVideoId: "",
+  force: true,
+  cache: "",
+};
+// const argv = yargs
+//   .option("outDir", {
+//     alias: "o",
+//     type: "string",
+//     description: "the directory to save videos",
+//     demandOption: true,
+//   })
+//   .option("format", {
+//     alias: "f",
+//     type: "string",
+//     description: "[mp3|m4a|360p|480p|720p|1080p|4k|8k]",
+//     default: "360p",
+//   })
+//   .option("startVideoId", {
+//     alias: "i",
+//     type: "string",
+//     description: "the video id of start downloading in playlist",
+//   })
+//   .option("force", {
+//     type: "boolean",
+//     description: "override file, even if the file exists already",
+//     default: false,
+//   })
+//   .option("cache", {
+//     type: "string",
+//     description: "the directory to cache page source code",
+//   })
+//   .help()
+//   .argv;
+
+// if (process.env.DEBUG) {
+//   logger.warn("YOU ARE IN DEBUG MODE");
+// }
 
 switch (argv.format) {
 case "mp3": logger.warn("mp3 not impl, use m4a instead"); argv.format = "m4a"; break;
@@ -46,12 +66,11 @@ case "4k": logger.warn("4k not impl, use 1080p instead"); argv.format = "1080p";
 case "8k": logger.warn("8k not impl, use 1080p instead"); argv.format = "1080p"; break;
 }
 
-if (argv.cache) {
-  argv.cache = path.resolve(process.cwd(), argv.cache);
-  mkdirp(argv.cache).then(_ => start(argv._[0]));
-} else {
-  start(argv._[0]);
+if (Deno.env().DEBUG) {
+  logger.warn("YOU ARE IN DEBUG MODE");
 }
+
+start(Deno.args[0]);
 
 function start(input: string) {
   resolve(input)
@@ -94,7 +113,7 @@ async function extract(playlist: string): Promise<ITask> {
   const cache = argv.cache ? path.join(argv.cache, safeFilename(link)) : "";
   const cont = await dl.psc(link, cache);
   const data = parser.parsePageData(cont);
-  if (process.env.DEBUG) {
+  if (Deno.env().DEBUG) {
     dump(JSON.stringify(data, null, 2), { annotation: `Extract page data from ${link}`, type: "JSON" });
   }
   let list = parser.getVideoList(data);
@@ -127,7 +146,7 @@ async function pack(video: string): Promise<ITask> {
   const cache = argv.cache ? path.join(argv.cache, safeFilename(link)) : "";
   const cont = await dl.psc(link, cache);
   const data = parser.parseMediaConfig(cont);
-  if (process.env.DEBUG) {
+  if (Deno.env().DEBUG) {
     dump(JSON.stringify(data, null, 2), { annotation: `Extract media config from ${link}`, type: "JSON" });
   }
   
@@ -136,8 +155,8 @@ async function pack(video: string): Promise<ITask> {
   logger.verbose("Pack video info:");
   logger.verbose(" title=%s", info.details.title);
 
-  const dir = path.join(process.cwd(), argv.outDir);
-  await mkdirp(dir);
+  const dir = path.join(Deno.cwd(), argv.outDir);
+  await Deno.mkdir(dir, true);
 
   if (argv.format === "m4a") {
     const audio = pickAudio(info.formats);
@@ -194,12 +213,5 @@ function pickVideo(formats: parser.IMediaFormat[], format: string, mime = "video
 
 // more detail https://stackoverflow.com/a/35352640/582989
 function safeFilename(path: string) {
-  switch (process.platform) {
-  case "darwin":
-    return path.replace(/[/:]/g, "-");
-  case "win32":
-    return path.replace(/[\\/:*?"<>|]/g, "-");
-  default:
-    return path.replace(/[/]/g, "-");
-  }
+  return path.replace(/[/:]/g, "-");
 }

@@ -95,7 +95,7 @@ async function extract(playlist: string): Promise<ITask> {
   const cont = await dl.psc(link, cache);
   const data = parser.parsePageData(cont);
   if (process.env.DEBUG) {
-    dump(JSON.stringify(data, null, 2), { annotation: `Extract page data from ${link}`, type: "JSON" });
+    await dump(JSON.stringify(data, null, 2), { annotation: `Extract page data from ${link}`, type: "JSON" });
   }
   let list = parser.getVideoList(data);
 
@@ -128,10 +128,10 @@ async function pack(video: string): Promise<ITask> {
   const cont = await dl.psc(link, cache);
   const data = parser.parseMediaConfig(cont);
   if (process.env.DEBUG) {
-    dump(JSON.stringify(data, null, 2), { annotation: `Extract media config from ${link}`, type: "JSON" });
+    await dump(JSON.stringify(data, null, 2), { annotation: `Extract media config from ${link}`, type: "JSON" });
   }
   
-  const info = parser.getMediaDownloadInfo(data);
+  const info = await parser.getMediaDownloadInfo(data);
 
   logger.verbose("Pack video info:");
   logger.verbose(" title=%s", info.details.title);

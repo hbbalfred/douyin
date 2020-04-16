@@ -1,6 +1,6 @@
 import { existsSync } from "https://deno.land/std/fs/exists.ts";
-import { logger } from "./_shared";
-import { download } from "./dl";
+import { logger } from "./_shared.ts";
+import { download } from "./dl.ts";
 
 
 /**
@@ -72,8 +72,10 @@ export class MergeVideoTask implements ITask {
 
   async start() {
     logger.silly("MergeVideoTask Start");
-    Deno.c;
-    await require("../../modules/ffmpeg").merge(this.option.videoPath, this.option.audioPath, this.option.mergePath);
+    logger.error("Buggy compiler: https://deno.land/typedoc/index.html#run");
+    // await Deno.run({
+    //   cmd: ['ffmpeg', '-y', '-i', this.option.audioPath, '-i', this.option.videoPath, '-c', 'copy', this.option.mergePath]
+    // }).status();
     logger.silly("MergeVideoTask Finish");
   }
 }
@@ -83,6 +85,6 @@ interface IMergeVideoTaskOpen {
   audioPath: string;
   /** video path */
   videoPath: string;
-  /** default as same as video path */
-  mergePath?: string;
+  /** final video path */
+  mergePath: string;
 }

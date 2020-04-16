@@ -1,17 +1,18 @@
 import * as path from "https://deno.land/std/path/mod.ts";
 
+// FIXME: rewrite in https://deno.land/std/log/
 export const logger = {
-  error: console.error,
-  warn: console.error,
-  info: console.info,
-  verbose: console.log,
-  debug: console.log,
-  silly: console.log,
+  error: (message: string, ...meta: unknown[]) => console.error(`[\x1b[31merror\x1b[39m] ${message}`, ...meta),
+  warn: (message: string, ...meta: unknown[]) => console.error(`[\x1b[33mwarn\x1b[39m] ${message}`, ...meta),
+  info: (message: string, ...meta: unknown[]) => console.info(`[\x1b[32minfo\x1b[39m] ${message}`, ...meta),
+  verbose: (message: string, ...meta: unknown[]) => console.log(`[\x1b[36mverbose\x1b[39m] ${message}`, ...meta),
+  debug: (message: string, ...meta: unknown[]) => console.log(`[\x1b[34mdebug\x1b[39m] ${message}`, ...meta),
+  silly: (message: string, ...meta: unknown[]) => console.log(`[\x1b[35msilly\x1b[39m] ${message}`, ...meta),
 };
 
 
-export function assert(condition: any, message: string, ...meta: any[]) {
-  if (!condition) {
+export function assert(cond: any, message: string, ...meta: any[]): asserts cond {
+  if (!cond) {
     logger.error(message, ...meta);
     Deno.exit(1);
   }

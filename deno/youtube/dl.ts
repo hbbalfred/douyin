@@ -5,9 +5,7 @@
 //////////////////////////////////////////////////////////////////////
 
 import { existsSync } from "https://deno.land/std/fs/exists.ts";
-import { dump, logger } from "./_shared";
-
-const pipeline = promisify(stream.pipeline);
+import { dump, logger, assert } from "./_shared.ts";
 
 
 /**
@@ -60,18 +58,30 @@ export async function download(url: string, to: string, size?: number) {
     ...COMMON_HTTP_HEADERS
   };
 
-  const bar = new ProgressBar("  downloading [:bar] :rate/bps :percent :etas", {
-    complete: "=",
-    incomplete: " ",
-    width: 60,
-    total: size || 1024 << 10,
-  });
+  const resp = await fetch(url, { headers });
+  assert(resp.ok, "Failed to fetch url %s", url);
 
-  await pipeline(
-    got.stream(url, { headers }).on("downloadProgress", (process: Progress) => {
-      bar.total = process.total || bar.total;
-      bar.update(process.percent);
-    }),
-    fs.createWriteStream(to)
-  );
+  const totalBytes = size || Number(resp.headers.get("content-length")) || 0;
+  logger.debug("totalBytes:", totalBytes);
+  
+  const buff = new Uint8Array(1 << 20);
+
+  let loadedBytes = 0;
+  let flag = false;
+  
+  let n = await resp.body.read(buff);
+  while (n !== Deno.EOF) {
+    loadedBytes += n;
+
+    const data = buff.slice(0, n);
+    await Deno.writeFile(to, data, { append: flag, create: !flag });
+    
+    const percent = (loadedBytes / totalBytes * 100).toFixed(2) + "%";
+    
+    // FIXME: draw progress bar
+    logger.info("  downloading [:bar] :rate/bps %s :etas", percent);
+    flag = true;
+
+    n = await resp.body.read(buff);
+  }
 }

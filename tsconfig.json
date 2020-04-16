@@ -5,6 +5,7 @@
   "exclude": [
     "build",
     "data",
+    "deno",
     "node_modules"
   ],
   "compilerOptions": {
