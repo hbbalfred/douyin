@@ -9,6 +9,7 @@
     "lint": "eslint --fix --ext .js,.ts lib"
   },
   "dependencies": {
+    "fast-xml-parser": "^3.16.0",
     "global-agent": "^2.1.8",
     "gm": "^1.23.1",
     "got": "^10.7.0",

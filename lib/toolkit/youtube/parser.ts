@@ -7,6 +7,8 @@
 
 import { assert, dump, logger } from "./_shared";
 import get from "lodash/get";
+import xmlParser from "fast-xml-parser";
+import * as dl from "./dl";
 
 /**
  * partial `player_resonse.videoDetails`
@@ -40,6 +42,7 @@ export interface IMediaFormat {
   initRange?: object;
   contentLength: string;
   qualityLabel: string;
+  cipher?: string;
 }
 
 /**
@@ -70,8 +73,47 @@ export async function getMediaDownloadInfo(data: object) {
   formats = formats.filter(info => !!info.initRange);
 
   assert(formats.length > 0, "Failed to parse media info, no streaming data. video=%s", details.videoId);
+  
+  if (formats[0].cipher) {
+    logger.warn("Found cipher, try to load manifest.");
+    const manifestUrl: string = get(json, "streamingData.dashManifestUrl");
+    assert(manifestUrl, "Not found the manifest url");
+    formats = await loadAndParseManifest(manifestUrl);
+    assert(formats.length > 0, "Manifest is empty. video=%s", details.videoId);
+  }
 
+  assert(formats.every(info => info.url), "Failed to parse media info, no url to download. video=%s", details.videoId);
+  
   return { details, formats };
+}
+
+async function loadAndParseManifest(url: string) {
+  const xml = await dl.psc(url);
+
+  let json: object;
+  try {
+    json = xmlParser.parse(xml, {
+      ignoreAttributes: false,
+      attributeNamePrefix: "",
+      attrNodeName: "$attrs",
+      parseAttributeValue: false,
+    }, true);
+  } catch (error) {
+    assert(false, "Failed to parse manifest: %s", error.message);
+  }
+
+  const adaptations: object[] = get(json, "MPD.Period.AdaptationSet", []);
+  assert(adaptations.length > 0, "Invalid manifest, not found any adaptation");
+
+  return adaptations.map<IMediaFormat>(it => {
+    const mimeType = get(it, "$attrs.mimeType") + "; codecs=\"" + get(it, "Representation.$attrs.codecs") + "\"";
+    const url = get(it, "Representation.BaseURL");
+    const bitrate = parseFloat(get(it, "Representation.$attrs.bandwidth", 0));
+    const initRange = get(it, "Representation.SegmentList.Initialization.$attrs.sourceURL", "sq/0");
+    const contentLength = /\/clen\/(\d+)\//.exec(url)?.[1] || "";
+    const qualityLabel = get(it, "Representation.$attrs.height") + "p";
+    return { mimeType, url, bitrate, contentLength, qualityLabel, initRange: initRange !== "sq/0" ? initRange : undefined };
+  });
 }
 
 /**
