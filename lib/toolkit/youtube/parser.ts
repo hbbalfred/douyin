@@ -43,6 +43,7 @@ export interface IMediaFormat {
   contentLength: string;
   qualityLabel: string;
   cipher?: string;
+  signatureCipher?: string;
 }
 
 /**
@@ -74,7 +75,7 @@ export async function getMediaDownloadInfo(data: object) {
 
   assert(formats.length > 0, "Failed to parse media info, no streaming data. video=%s", details.videoId);
   
-  if (formats[0].cipher) {
+  if (formats[0].cipher || formats[0].signatureCipher) {
     logger.warn("Found cipher, try to load manifest.");
     const manifestUrl: string = get(json, "streamingData.dashManifestUrl");
     assert(manifestUrl, "Not found the manifest url");
@@ -102,18 +103,33 @@ async function loadAndParseManifest(url: string) {
     assert(false, "Failed to parse manifest: %s", error.message);
   }
 
-  const adaptations: object[] = get(json, "MPD.Period.AdaptationSet", []);
-  assert(adaptations.length > 0, "Invalid manifest, not found any adaptation");
+  const adaptationSet: object[] = get(json, "MPD.Period.AdaptationSet", []);
+  assert(adaptationSet.length > 0, "Invalid manifest, not found any adaptation");
 
-  return adaptations.map<IMediaFormat>(it => {
-    const mimeType = get(it, "$attrs.mimeType") + "; codecs=\"" + get(it, "Representation.$attrs.codecs") + "\"";
-    const url = get(it, "Representation.BaseURL");
-    const bitrate = parseFloat(get(it, "Representation.$attrs.bandwidth", 0));
-    const initRange = get(it, "Representation.SegmentList.Initialization.$attrs.sourceURL", "sq/0");
-    const contentLength = /\/clen\/(\d+)\//.exec(url)?.[1] || "";
-    const qualityLabel = get(it, "Representation.$attrs.height") + "p";
-    return { mimeType, url, bitrate, contentLength, qualityLabel, initRange: initRange !== "sq/0" ? initRange : undefined };
-  });
+  let rval: IMediaFormat[] = [];
+
+  for (const adaptation of adaptationSet) {
+    let representation: object[] = get(adaptation, "Representation", []);
+    if (!Array.isArray(representation)) {
+      representation = [representation];
+    }
+
+    const formats = representation.map<IMediaFormat>(rep => {
+      const mimeType = get(adaptation, "$attrs.mimeType") + "; codecs=\"" + get(rep, "$attrs.codecs") + "\"";
+      const url = get(rep, "BaseURL");
+      const bitrate = parseFloat(get(rep, "$attrs.bandwidth", 0));
+      const initRange = get(rep, "SegmentList.Initialization.$attrs.sourceURL", "sq/0");
+      const contentLength = /\/clen\/(\d+)\//.exec(url)?.[1] || "";
+      const qualityLabel = get(rep, "$attrs.height") + "p";
+      return {
+        mimeType, url, bitrate, contentLength, qualityLabel,
+        initRange: initRange !== "sq/0" ? initRange : undefined,
+      };
+    });
+    rval = rval.concat(formats);
+  }
+
+  return rval;
 }
 
 /**
