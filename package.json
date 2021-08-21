@@ -5,43 +5,29 @@
   "description": "A toolkit for play with modern video sites",
   "author": "hbb",
   "scripts": {
-    "youtube": "GLOBAL_AGENT_HTTP_PROXY=http://127.0.0.1:1081 ts-node -r 'global-agent/bootstrap' lib/toolkit/youtube",
-    "lint": "eslint --fix --ext .js,.ts lib"
+    "youtube": "GLOBAL_AGENT_HTTP_PROXY=http://127.0.0.1:1081 ts-node -r 'global-agent/bootstrap' ytdl"
   },
   "dependencies": {
-    "fast-xml-parser": "^3.16.0",
+    "date-fns": "^2.23.0",
     "global-agent": "^2.1.8",
-    "gm": "^1.23.1",
     "got": "^10.7.0",
     "hbblog": "^1.2.2",
     "lodash": "^4.17.15",
-    "mime": "^2.4.3",
     "mkdirp": "^1.0.3",
-    "moment": "^2.24.0",
     "progress": "^2.0.3",
+    "prompts": "^2.4.1",
     "rimraf": "^2.6.3",
-    "yargs": "^13.2.1"
+    "yargs": "^13.2.1",
+    "ytdl-core": "^4.9.1"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.149",
     "@types/mkdirp": "^1.0.0",
-    "@types/progress": "^2.0.3",
+    "@types/progress": "^2.0.5",
+    "@types/prompts": "^2.0.14",
     "@types/yargs": "^15.0.4",
-    "@typescript-eslint/eslint-plugin": "^2.25.0",
-    "@typescript-eslint/parser": "^2.25.0",
-    "eslint": "^6.8.0",
-    "husky": "^4.2.3",
-    "lint-staged": "^10.1.0",
-    "ts-node": "^8.8.1",
-    "typescript": "^3.8.3"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": "npm run lint"
+    "ts-node": "^10.2.1",
+    "typescript": "^4.3.5"
   },
   "repository": {
     "type": "git",
