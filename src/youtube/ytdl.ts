@@ -4,6 +4,7 @@ import Progress from "progress";
 import prompts from "prompts";
 import ytdl from "ytdl-core";
 import yargs from "yargs";
+import { abort } from "../utils";
 
 const argv = yargs
   .usage("Usage: $0 {youtube_link} [-o|path] [-q|num] [--force]")
@@ -28,15 +29,13 @@ const argv = yargs
   .help("h")
   .argv;
 
-
-main().catch(err => console.error(err));
-
+main().catch(abort);
 
 async function main() {
-  const url = argv._[0].toString();
-  if (!url) {
+  if (!argv._[0]) {
     throw new Error("Missing link");
   }
+  const url = argv._[0].toString();
 
   let path = nodepath.join(process.cwd(), argv.out);
   let existed = fs.existsSync(path);
@@ -59,18 +58,30 @@ async function main() {
     }
   }
 
-  const bar = new Progress("  downloading [:bar] :rate/bps :percent :etas", {
-    complete: "=",
-    incomplete: " ",
-    width: 60,
-    total: 1024 << 10,
-  });
+  console.log("Download", url);
 
-  // about quality format: https://github.com/fent/node-ytdl-core#ytdlchooseformatformats-options
-  ytdl(url, { quality: 18 }).on("progress", (_, loaded, total) => {
-    bar.total = total ?? bar.total;
-    bar.update(loaded / total);
-  }).pipe(
-    fs.createWriteStream(path)
-  );
+  await download(url, path);
+}
+
+async function download(url: string, filePath: string) {
+  return new Promise((resolve, reject) => {
+    const bar = new Progress("[:bar] :rate/bps :percent :etas", {
+      complete: "=",
+      incomplete: " ",
+      width: 60,
+      total: 1024 << 10,
+    });
+
+    // about quality format: https://github.com/fent/node-ytdl-core#ytdlchooseformatformats-options
+    ytdl(url, { quality: argv.quality })
+      .on("error", reject)
+      .on("progress", (_, loaded, total) => {
+        bar.total = total ?? bar.total;
+        bar.update(loaded / total);
+      })
+      .pipe(fs.createWriteStream(filePath))
+      .on("error", reject)
+      .on("close", resolve)
+      ;
+  });
 }

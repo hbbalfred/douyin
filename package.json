@@ -8,17 +8,18 @@
     "youtube": "GLOBAL_AGENT_HTTP_PROXY=http://127.0.0.1:1081 ts-node -r 'global-agent/bootstrap' ytdl"
   },
   "dependencies": {
+    "colors": "^1.4.0",
     "date-fns": "^2.23.0",
     "global-agent": "^2.1.8",
     "got": "^10.7.0",
-    "hbblog": "^1.2.2",
     "lodash": "^4.17.15",
     "mkdirp": "^1.0.3",
     "progress": "^2.0.3",
     "prompts": "^2.4.1",
     "rimraf": "^2.6.3",
-    "yargs": "^13.2.1",
-    "ytdl-core": "^4.9.1"
+    "yargs": "^17.1.1",
+    "ytdl-core": "^4.9.1",
+    "ytpl": "^2.2.3"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.149",
