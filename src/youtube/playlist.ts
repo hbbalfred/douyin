@@ -5,7 +5,7 @@ import colors from "colors";
 import { abort } from "../utils";
 
 const argv = yargs
-  .usage("Usage: $0 {playlist_link} -o [dir_path] [-q|num] [--force] [--start-idx|num] [--end-idx|num]")
+  .usage("Usage: $0 {playlist_link} -o [dir_path] [...args]")
   .option("out", {
     alias: "o",
     type: "string",
@@ -17,6 +17,11 @@ const argv = yargs
     type: "number",
     default: 18,
     desc: "Quality format see: https://github.com/fent/node-ytdl-core#ytdlchooseformatformats-options",
+  })
+  .option("auto-idx", {
+    type: "boolean",
+    default: false,
+    desc: "Add the index as prefix to file name",
   })
   .option("start-idx", {
     type: "number",
@@ -64,7 +69,7 @@ async function main() {
 
   for (const item of items) {
     const index = leadzero(item.index, items.length);
-    const name = `${index}.${item.title}`;
+    const name = argv["auto-idx"] ? `${index}.${item.title}` : item.title;
 
     const command = [
       "./ytdl.sh",
