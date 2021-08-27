@@ -20,7 +20,7 @@ const argv = yargs
   })
   .option("auto-idx", {
     type: "boolean",
-    default: false,
+    default: true,
     desc: "Add the index as prefix to file name",
   })
   .option("start-idx", {

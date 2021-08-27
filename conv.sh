@@ -10,6 +10,6 @@ dst_ext="${3:-m4a}"
 
 for src in "$work_dir"/*.$src_ext; do
     dst=$(basename -s .$src_ext "$src").$dst_ext
-    ffmpeg -y -v 0 -i "$src" -map_metadata -1 -vn -c:a copy "$work_dir/$dst"
+    ffmpeg -y -v error -i "$src" -map_metadata -1 -vn -c:a copy "$work_dir/$dst"
     echo $dst
 done
