@@ -36,7 +36,7 @@ read -d '\n' bit_rate duration height r_frame_rate width <<< "$(stats | node par
 for src in "$work_dir"/*.mp4; do
     mp4=$(basename "$src")
     pad="$tmp_dir"/"pad-$mp4"
-    dst="$tmp_dir"/"$mp4"
+    dst="$tmp_dir"/"${mp4/\'/_}"
 
     ffmpeg -v error -i "$src" -y -vf "scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2" "$pad"
 
