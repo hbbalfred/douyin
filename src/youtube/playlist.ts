@@ -33,9 +33,97 @@ const argv = yargs
     default: -1,
     desc: "The inclusive index end to load, -1 is the last item"
   })
+  .option("retry-failed", {
+    type: "number",
+    default: 3,
+    desc: "Retry to download the failures"
+  })
   .help("h")
   .argv;
 
+class Downloader {
+  private readonly startIdx: number;
+  private readonly endIdx: number;
+  private readonly retryMap: Record<string, number> = {};
+
+  constructor(private readonly playlist: ytpl.Result) {
+    let startIdx = argv["start-idx"];
+    if (startIdx <= 0) {
+      startIdx = playlist.items[0].index;
+    }
+    let endIdx = argv["end-idx"];
+    if (endIdx <= 0) {
+      endIdx = playlist.items[playlist.items.length - 1].index;
+    }
+    this.startIdx = startIdx;
+    this.endIdx = endIdx;
+  }
+
+  async start() {
+    const items = this.playlist.items.filter(it => it.index >= this.startIdx && it.index <= this.endIdx);
+    console.log("Load %d to %d, Total %d:", this.startIdx, this.endIdx, items.length);
+
+    await this.downloadItems(items);
+  }
+
+  private async downloadItems(items: ytpl.Item[]) {
+    const failedList: ytpl.Item[] = [];
+
+    for (const item of items) {
+      const command = this.makeShellCommand(item);
+
+      console.log(colors.yellow("[%d]"), item.index, colors.bold(item.title));
+      console.log("$", colors.grey(command.join(" ")));
+
+      const ok = await execDownload(command);
+
+      if (!ok) {
+        failedList.push(item);
+      }
+    }
+
+    if (failedList.length > 0) {
+      await this.retryFailures(failedList);
+    }
+  }
+
+  private async retryFailures(items: ytpl.Item[]) {
+    console.error(colors.red("\nFailed to Download items (%d):"), items.length);
+
+    const code = items.map(it => it.index).join(",");
+
+    if (!this.retryMap[code]) {
+      this.retryMap[code] = 0;
+    }
+    if (++this.retryMap[code] > argv["retry-failed"]) {
+      console.error(colors.bold(colors.magenta("Timeout, Max-retry: %d")), argv["retry-failed"]);
+      items.forEach(it => {
+        const cmd = this.makeShellCommand(it).join(" ");
+        console.error(colors.bold(it.title));
+        console.error("$", colors.grey(cmd));
+      });
+      process.exit(1);
+    }
+
+    console.error("Retry to download %s time(s), items=%s", this.retryMap[code], code);
+    console.error(colors.grey(items.map(it => it.title).join("\n")));
+    await this.downloadItems(items);
+
+  }
+
+  private makeShellCommand(item: ytpl.Item) {
+    const index = leadzero(item.index, this.playlist.items.length);
+    const name = argv["auto-idx"] ? `${index}.${item.title}` : item.title;
+
+    return [
+      "./ytdl.sh",
+      item.shortUrl,
+      "-q", `${argv.quality}`,
+      "-o", `"${argv.out}/${name}.mp4"`,
+      "--force"
+    ];
+  }
+}
 
 main().catch(abort);
 
@@ -46,55 +134,10 @@ async function main() {
   const url = argv._[0].toString();
 
   const playlist = await ytpl(url, { limit: Infinity });
-
-  // >> Filter playlist
-
-  let startIdx = argv["start-idx"];
-  if (startIdx <= 0) {
-    startIdx = playlist.items[0].index;
-  }
-  let endIdx = argv["end-idx"];
-  if (endIdx <= 0) {
-    endIdx = playlist.items[playlist.items.length - 1].index;
-  }
-
-  const items = playlist.items.filter(it => it.index >= startIdx && it.index <= endIdx);
-
-  // >> Download sequentially
-
   console.log("Playlist:", playlist.title);
-  console.log("Load %d to %d, Total %d:", startIdx, endIdx, items.length);
 
-  const failedCommands: string[] = [];
-
-  for (const item of items) {
-    const index = leadzero(item.index, items.length);
-    const name = argv["auto-idx"] ? `${index}.${item.title}` : item.title;
-
-    const command = [
-      "./ytdl.sh",
-      item.shortUrl,
-      "-q", `${argv.quality}`,
-      "-o", `"${argv.out}/${name}.mp4"`,
-      "--force"
-    ];
-
-    console.log(colors.yellow("[%d]"), item.index, colors.bold(item.title));
-    console.log("$", colors.grey(command.join(" ")));
-
-    const ok = await execDownload(command);
-
-    if (!ok) {
-      failedCommands.push(command.join(" "));
-    }
-  }
-
-  // >> Print failed download
-
-  if (failedCommands.length > 0) {
-    console.error(colors.red("\nFailed to Download List (%d):"), failedCommands.length);
-    console.error(failedCommands.join("\n"));
-  }
+  const loader = new Downloader(playlist);
+  await loader.start();
 }
 
 function execDownload(args: string[]) {
