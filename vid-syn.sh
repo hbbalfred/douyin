@@ -34,9 +34,9 @@ read -d '\n' bit_rate duration height r_frame_rate width <<< "$(stats | node par
 
 # normalize
 for src in "$work_dir"/*.mp4; do
-    mp4=$(basename "$src")
+    mp4=$(date +%s).mp4
     pad="$tmp_dir"/"pad-$mp4"
-    dst="$tmp_dir"/"${mp4/\'/_}"
+    dst="$tmp_dir"/"$mp4"
 
     ffmpeg -v error -i "$src" -y -vf "scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2" "$pad"
 
@@ -45,7 +45,7 @@ for src in "$work_dir"/*.mp4; do
     echo "file '$root_dir/$dst'" >> "$list_file"
     rm -f "$pad"
 
-    echo "$dst"
+    echo "$dst <- $src"
 done
 
 # synthesize
