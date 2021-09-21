@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import ytpl from "ytpl";
 import yargs from "yargs";
 import colors from "colors";
-import { abort } from "../utils";
+import { abort, normFileName } from "../utils";
 
 const argv = yargs
   .usage("Usage: $0 {playlist_link} -o [dir_path] [...args]")
@@ -119,7 +119,7 @@ class Downloader {
       "./ytdl.sh",
       item.shortUrl,
       "-q", `${argv.quality}`,
-      "-o", `"${argv.out}/${name}.mp4"`,
+      "-o", `"${argv.out}/${normFileName(name)}.mp4"`,
       "--force"
     ];
   }

@@ -4,7 +4,7 @@ import Progress from "progress";
 import prompts from "prompts";
 import ytdl from "ytdl-core";
 import yargs from "yargs";
-import { abort } from "../utils";
+import { abort, normFileName } from "../utils";
 
 const argv = yargs
   .usage("Usage: $0 {youtube_link} [-o|path] [-q|num] [--force]")
@@ -42,7 +42,8 @@ async function main() {
 
   if (existed && fs.statSync(path).isDirectory()) {
     const info = await ytdl.getBasicInfo(url);
-    path = nodepath.join(path, info.videoDetails.title + ".mp4");
+    const title = normFileName(info.videoDetails.title);
+    path = nodepath.join(path, title + ".mp4");
     existed = fs.existsSync(path);
   }
 
