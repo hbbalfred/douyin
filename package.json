@@ -18,7 +18,7 @@
     "prompts": "^2.4.1",
     "rimraf": "^2.6.3",
     "yargs": "^17.1.1",
-    "ytdl-core": "^4.10.1",
+    "ytdl-core": "^4.11.0",
     "ytpl": "^2.2.3"
   },
   "devDependencies": {
