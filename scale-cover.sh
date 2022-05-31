@@ -8,4 +8,4 @@ input="$1"
 wid="${2:-640}"
 out="${3:-cover.${input##*.}}"
 
-ffmpeg -v error -y -i $input -vf "scale=$wid:ih*ow/iw" $out
+ffmpeg -v error -y -i "$input" -vf "scale=$wid:ih*ow/iw" "$out"
