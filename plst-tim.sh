@@ -4,7 +4,7 @@ set -e
 
 root_dir=$(cd `dirname $0`;pwd)
 work_dir=$1
-file_ext=mp4
+file_ext=${2:-mp4}
 
 info=""
 
