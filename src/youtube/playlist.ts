@@ -4,7 +4,7 @@ import yargs from "yargs";
 import colors from "colors";
 import { abort, normFileName } from "../utils";
 
-const argv = yargs
+const argv = yargs(process.argv.slice(2))
   .usage("Usage: $0 {playlist_link} -o [dir_path] [...args]")
   .option("out", {
     alias: "o",
@@ -39,7 +39,7 @@ const argv = yargs
     desc: "Retry to download the failures"
   })
   .help("h")
-  .argv;
+  .parseSync();
 
 class Downloader {
   private readonly startIdx: number;
@@ -119,7 +119,7 @@ class Downloader {
       "./ytdl.sh",
       item.shortUrl,
       "-q", `${argv.quality}`,
-      "-o", `"${argv.out}/${normFileName(name)}.mp4"`,
+      "-o", `${argv.out}/${normFileName(name)}.mp4`,
       "--force"
     ];
   }
@@ -134,7 +134,6 @@ async function main() {
   const url = argv._[0].toString();
 
   const playlist = await ytpl(url, { limit: Infinity });
-  console.log("Playlist:", playlist.title);
 
   const loader = new Downloader(playlist);
   await loader.start();
@@ -142,6 +141,7 @@ async function main() {
 
 function execDownload(args: string[]) {
   return new Promise<boolean>((resolve, reject) => {
+
     const subproc = spawn(args[0], args.slice(1), {
       cwd: process.cwd(),
       env: process.env,

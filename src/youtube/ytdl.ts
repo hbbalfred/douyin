@@ -27,7 +27,7 @@ const argv = yargs
     desc: "Whether force overwrite if the file existed"
   })
   .help("h")
-  .argv;
+  .parseSync();
 
 main().catch(abort);
 
