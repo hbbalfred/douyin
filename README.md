@@ -1,5 +1,8 @@
 # 芜湖
 
+关于新版`ytdl-core`报错修复
+https://stackoverflow.com/questions/75959840/syntaxerror-missing-catch-or-finally-after-try-with-ytdl-core
+
 · 下载油管单个视频
 ```
 $ ./ytdl.sh <video_link> [-o -q -f]
